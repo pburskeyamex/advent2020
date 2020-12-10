@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"fmt"
+	"log"
 	"os"
 	"strconv"
 	"strings"
@@ -77,13 +78,13 @@ func main() {
 
 	data := Parse()
 	dictionary := parseDictionary(data)
-
-	bags := find(dictionary, "shiny gold")
-
-	for _, aBag := range bags {
-		fmt.Println(fmt.Sprintf("Color: %s ...", aBag.color))
-	}
-	fmt.Println(fmt.Sprintf("Found: %d bags...", len(bags)-1))
+	//
+	//bags := find(dictionary, "shiny gold")
+	//
+	//for _, aBag := range bags {
+	//	fmt.Println(fmt.Sprintf("Color: %s ...", aBag.color))
+	//}
+	//fmt.Println(fmt.Sprintf("Found: %d bags...", len(bags)-1))
 
 	shinyGold := dictionary["shiny gold"]
 	count := howManyBagsInside(shinyGold)
@@ -93,12 +94,17 @@ func main() {
 
 func howManyBagsInside(aBag *bag) int {
 	count := 0
-	if aBag != nil {
-		for _, associatedBag := range aBag.associatedBags {
-			count += associatedBag.quantity
-			count += howManyBagsInside(associatedBag.bag)
-		}
+
+	for _, associatedBag := range aBag.associatedBags {
+
+		associationCount := howManyBagsInside(associatedBag.bag)
+
+		associationCount = associatedBag.quantity + (associationCount * associatedBag.quantity)
+
+		count = count + associationCount
+
 	}
+	log.Printf("Bag: %s has %d bags", aBag.color, count)
 	return count
 }
 
@@ -275,7 +281,7 @@ func parseDictionary(data []string) map[string]*bag {
 }
 
 func Parse() []string {
-	file, err := os.Open("data/day_7_sample_data.txt")
+	file, err := os.Open("data/day_7_data.txt")
 	if err != nil {
 		panic(err)
 	}
