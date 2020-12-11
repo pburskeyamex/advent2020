@@ -40,7 +40,7 @@ func main() {
 		log.Println(fmt.Sprintf("X: %d Y:%d.... Sum: %d Target: %d", a, b, a+b, target))
 	} else {
 		log.Println(fmt.Sprintf("Unable to match for Target: %d", target))
-		findCombinationAlternative(numbers, preamble, offset, target)
+		findCombinationAlternative(numbers, preamble, 0, target)
 	}
 
 }
@@ -70,20 +70,22 @@ func findCombinationAlternative(numbers []int, preable int, offset int, target i
 	var found bool
 	var a, b int
 
-	aSliceOfNumbers := numbers[offset : preable+offset]
+	aSliceOfNumbers := numbers[offset:]
 
+	bucket := 0
 	for x := 0; !found && x < len(aSliceOfNumbers); x++ {
-		for y := len(aSliceOfNumbers) - 1; !found && y >= 0; y-- {
-			a = aSliceOfNumbers[x]
-			b = aSliceOfNumbers[y]
-			total := a + b
-			log.Println(fmt.Sprintf("X: %d Y:%d.... Sum: %d Target: %d", a, b, total, target))
 
-			if total == target {
-				found = true
-			}
+		a = aSliceOfNumbers[x]
+		bucket += a
+
+		if bucket == target {
+			found = true
+			break
+		} else if bucket > target {
+			return findCombinationAlternative(numbers, preable, offset+1, target)
 		}
 	}
+
 	return found, a, b
 }
 
