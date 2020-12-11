@@ -7,6 +7,7 @@ import (
 	"os"
 	"reflect"
 	"runtime"
+	"sort"
 	"strconv"
 )
 
@@ -20,14 +21,14 @@ func humanOperationID(anOperationID int) int {
 
 func main() {
 
-	data := Parse("day_9_sample_data.txt")
+	data := Parse("day_9_data.txt")
 
 	numbers := make([]int, len(data))
 	for index := 0; index < len(data); index++ {
 		numbers[index], _ = strconv.Atoi(data[index])
 	}
 
-	preamble := 5
+	preamble := 25
 	var found bool
 	var offset int
 	found = true
@@ -39,8 +40,10 @@ func main() {
 	if found {
 		log.Println(fmt.Sprintf("X: %d Y:%d.... Sum: %d Target: %d", a, b, a+b, target))
 	} else {
+		var magicNumber int
 		log.Println(fmt.Sprintf("Unable to match for Target: %d", target))
-		findCombinationAlternative(numbers, preamble, 0, target)
+		found, numbers, magicNumber = findCombinationAlternative(numbers, preamble, 0, target)
+		log.Println(fmt.Sprintf("Encryption Weakness: %d", magicNumber))
 	}
 
 }
@@ -66,27 +69,35 @@ func findCombination(numbers []int, preable int, offset int, target int) (bool, 
 	return found, a, b
 }
 
-func findCombinationAlternative(numbers []int, preable int, offset int, target int) (bool, int, int) {
+func findCombinationAlternative(numbers []int, preable int, offset int, target int) (bool, []int, int) {
 	var found bool
-	var a, b int
-
+	var magicNumber int
+	var foundNumbers []int
 	aSliceOfNumbers := numbers[offset:]
 
 	bucket := 0
 	for x := 0; !found && x < len(aSliceOfNumbers); x++ {
 
-		a = aSliceOfNumbers[x]
+		a := aSliceOfNumbers[x]
 		bucket += a
 
 		if bucket == target {
 			found = true
+			foundNumbers = aSliceOfNumbers[:x+1]
+			sort.Slice(foundNumbers, func(i int, j int) bool {
+				return foundNumbers[i] < foundNumbers[j]
+			})
+			first := foundNumbers[0]
+			last := foundNumbers[len(foundNumbers)-1]
+			magicNumber = first + last
 			break
+
 		} else if bucket > target {
 			return findCombinationAlternative(numbers, preable, offset+1, target)
 		}
 	}
 
-	return found, a, b
+	return found, numbers, magicNumber
 }
 
 func Parse(aFilePart string) []string {
