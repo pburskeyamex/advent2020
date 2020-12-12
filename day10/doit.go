@@ -11,7 +11,7 @@ import (
 
 func main() {
 
-	data := Parse("day_10_data.txt")
+	data := Parse("day_10_sample_data.txt")
 
 	var deviceJoltageRating int
 	var deltas []int
@@ -36,9 +36,28 @@ func main() {
 		diff := current - last
 		deltas[diff]++
 		last = current
-		log.Println(fmt.Sprintf("Index: %d Last: %d Current: %d Difference: %d", x, last, current, diff))
+		//log.Println(fmt.Sprintf("Index: %d Last: %d Current: %d Difference: %d", x, last, current, diff))
 	}
 	log.Println(deltas)
+	combinations := make([]int, 0)
+	combinations = append(combinations, 0)
+	combinations = append(combinations, numbers...)
+
+	log.Println(combinations)
+
+	paths := make(map[int]int)
+	paths[0] = 1
+	for i := 1; i < len(combinations); i++ {
+		sum := 0
+		for j := i - 1; j >= 0 && combinations[i]-combinations[j] <= 3; j-- {
+			sum += paths[combinations[j]]
+		}
+		paths[combinations[i]] = sum
+	}
+	log.Println(paths)
+}
+
+func combine(combinations []int) {
 
 }
 
