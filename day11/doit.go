@@ -25,6 +25,11 @@ type coordinate struct {
 	x int
 }
 
+type vision struct {
+	sight                   int
+	allowedToIncreaseVision bool
+}
+
 type picturePoint struct {
 	realX    int
 	realY    int
@@ -55,17 +60,23 @@ func proof(aFileName string) {
 		x: 3,
 	}
 
+	sight := &vision{
+		sight:                   0,
+		allowedToIncreaseVision: true,
+	}
+
 	//sight, coordinates, picture, results, directions, picturePoints := lineOfSight(0, interestingCoordinate, realData)
-	_, _, picture, _, directions, _ := lineOfSight(0, 1, interestingCoordinate, realData)
-	prettyPrint(picture)
+	_, _, _, directions := lineOfSight(sight, interestingCoordinate, realData)
+	//prettyPrint(picture)
 	log.Print(directions)
 }
 
 func main() {
 
-	proof("day_11_sample_data_2.txt")
+	//proof("day_11_sample_data_2.txt")
 
-	data := Parse("day_11_sample_data.txt")
+	//data := Parse("day_11_sample_data.txt")
+	data := Parse("day_11_data.txt")
 
 	var realData [][]string
 	realData = make([][]string, 0)
@@ -81,9 +92,20 @@ func main() {
 	//var coordinates [][]int
 	//x := 0
 	//y := 0
-	sight := 0
-	limitSightTo := 0
+	debug := false
+
+	//sight := &vision{
+	//	sight:                   1,
+	//	allowedToIncreaseVision: false,
+	//}
+	//tolerance := 4
+
+	sight := &vision{
+		sight:                   0,
+		allowedToIncreaseVision: true,
+	}
 	tolerance := 5
+
 	//coordinates = diagonalToDimensions(x, y, sight)
 	//picture, results = populateAdjacentSeatsInGraph( coordinates, realData, x, y)
 	//prettyPrint(picture)
@@ -112,7 +134,7 @@ func main() {
 	available, occupied := count(realData)
 	dataToConsider := realData
 	for i := 0; changing; i++ {
-		_, _, emptySeatPhaseData := adjustSeating(sight, limitSightTo, dataToConsider, tolerance)
+		_, _, emptySeatPhaseData := adjustSeating(debug, sight, dataToConsider, tolerance)
 		//prettyPrint(emptySeatPhaseData)
 		thisAvailable, thisOccupied := count(emptySeatPhaseData)
 		if thisAvailable == available && thisOccupied == occupied {
@@ -126,14 +148,21 @@ func main() {
 		log.Println(fmt.Sprintf("Iteration: %d Available: %d Occupied: %d", i, available, occupied))
 	}
 
+	if occupied != 1862 {
+		//	if occupied != 37{
+		panic("should be 1862")
+	}
+
 }
 
-func adjustSeating(sight int, limitSightTo int, originalData [][]string, tolerance int) ([][]string, [][]string, [][]string) {
+func adjustSeating(debug bool, sight *vision, originalData [][]string, tolerance int) ([][]string, [][]string, [][]string) {
 
 	occupyPhaseData := deepCopy(originalData)
 
-	//fmt.Println("Start..............")
-	//prettyPrint(occupyPhaseData)
+	if debug {
+		fmt.Println("Start..............")
+		prettyPrint(occupyPhaseData)
+	}
 
 	for y := 0; y < len(originalData); y++ {
 		for x := 0; x < len(originalData[y]); x++ {
@@ -141,14 +170,15 @@ func adjustSeating(sight int, limitSightTo int, originalData [][]string, toleran
 				y: y,
 				x: x,
 			}
-			if willASeatBecomeFilled(sight, limitSightTo, interestingCoordinate, originalData) {
+			if willASeatBecomeFilled(sight, interestingCoordinate, originalData) {
 				occupySeat(interestingCoordinate, occupyPhaseData)
 			}
 		}
 	}
-
-	//fmt.Println("Filled Seats")
-	//prettyPrint(occupyPhaseData)
+	if debug {
+		fmt.Println("Filled Seats")
+		prettyPrint(occupyPhaseData)
+	}
 
 	emptySeatPhaseData := deepCopy(occupyPhaseData)
 
@@ -160,14 +190,17 @@ func adjustSeating(sight int, limitSightTo int, originalData [][]string, toleran
 				y: y,
 				x: x,
 			}
-			if willASeatBecomeVacant(sight, limitSightTo, interestingCoordinate, occupyPhaseData, tolerance) {
+			if willASeatBecomeVacant(sight, interestingCoordinate, occupyPhaseData, tolerance) {
 				emptySeat(interestingCoordinate, emptySeatPhaseData)
 			}
 		}
 
 	}
-	fmt.Println("Emptied Seats")
-	prettyPrint(emptySeatPhaseData)
+	if debug {
+		fmt.Println("Emptied Seats")
+		prettyPrint(emptySeatPhaseData)
+	}
+
 	return originalData, occupyPhaseData, emptySeatPhaseData
 }
 
@@ -190,21 +223,28 @@ func count(data [][]string) (available int, occupied int) {
 func determineDistanceBetweenHighAndLow(coordinates []*coordinate, valueFunction func(aCoordinate *coordinate) int) int {
 
 	aMap := make(map[int]int)
-	//floor := -1
-	//ceiling := -1
+
 	for i := 0; i < len(coordinates); i++ {
 		aCoordinate := coordinates[i]
 		value := valueFunction(aCoordinate)
 		aMap[value] = value
-		//if floor < 0 || value < floor {
-		//	floor = value
-		//}
-		//if ceiling < 0 || value > ceiling {
-		//	ceiling = value
-		//}
+
 	}
 
-	//return ceiling - floor
+	return len(aMap)
+}
+
+func determineDistanceBetweenHighAndLowPoints(points []*picturePoint, valueFunction func(aPoint *picturePoint) int) int {
+
+	aMap := make(map[int]int)
+
+	for i := 0; i < len(points); i++ {
+		aPoint := points[i]
+		value := valueFunction(aPoint)
+		aMap[value] = value
+
+	}
+
 	return len(aMap)
 }
 
@@ -231,50 +271,88 @@ func adjustSightBasedOnCoordinates(coordinates []*coordinate) int {
 	return actualSight
 }
 
-func populateAdjacentSeatsInGraph(coordinates []*coordinate, data [][]string, interestingCoordinate *coordinate) ([][]string, []string, []*picturePoint) {
+func adjustSightBasedOnPicturePoints(points []*picturePoint) int {
 
-	var strings []string
+	actualSight := 0
+
+	xDifference := determineDistanceBetweenHighAndLowPoints(points, func(aCoordinate *picturePoint) int {
+		return aCoordinate.pictureX
+	})
+
+	yDifference := determineDistanceBetweenHighAndLowPoints(points, func(aCoordinate *picturePoint) int {
+		return aCoordinate.pictureY
+	})
+
+	if xDifference > actualSight {
+		actualSight = xDifference
+	}
+
+	if yDifference > actualSight {
+		actualSight = yDifference
+	}
+
+	return actualSight
+}
+
+func generatePictureFrom(points []*picturePoint) [][]string {
 	var picture [][]string
+
+	coordinates := make([]*coordinate, 0)
+	for i := 0; i < len(points); i++ {
+
+	}
+
+	actualSight := adjustSightBasedOnCoordinates(coordinates)
+
+	picture = make([][]string, actualSight)
+	panic("Not yet implemented")
+	return picture
+
+}
+
+func populateAdjacentSeatsInGraph(coordinates []*coordinate, data [][]string, interestingCoordinate *coordinate) []*picturePoint {
+
+	//var picture [][]string
 	var picturePoints []*picturePoint
 	picturePoints = make([]*picturePoint, 0)
-	strings = make([]string, 0)
+	//strings = make([]string, 0)
 
 	actualSight := adjustSightBasedOnCoordinates(coordinates)
 
 	if actualSight > 0 {
-		picture = make([][]string, actualSight)
-		for i := 0; i < len(picture); i++ {
-			picture[i] = make([]string, actualSight)
-
-		}
+		//picture = make([][]string, actualSight)
+		//for i := 0; i < len(picture); i++ {
+		//	picture[i] = make([]string, actualSight)
+		//
+		//}
 		pictureX := 0
 		pictureY := 0
 		for i := 0; i < len(coordinates); i++ {
 			aCoordinate := coordinates[i]
-			x := aCoordinate.x
-			y := aCoordinate.y
+			realX := aCoordinate.x
+			realY := aCoordinate.y
 
-			aString := " "
+			aString := ""
 
 			centerIdentified := false
 
 			//log.Println(fmt.Sprintf("X %d  Y %d" ,x, y))
-			if x == interestingCoordinate.x && y == interestingCoordinate.y {
+			if realX == interestingCoordinate.x && realY == interestingCoordinate.y {
 				//log.Println("We should skip this next one....")
 				centerIdentified = true
-				aString = data[y][x]
+				aString = data[realY][realX]
 
 			} else {
-				if x >= 0 && y >= 0 && y < len(data) && x < len(data[y]) {
-					aString = data[y][x]
-					strings = append(strings, aString)
+				if realX >= 0 && realY >= 0 && realY < len(data) && realX < len(data[realY]) {
+					aString = data[realY][realX]
+					//strings = append(strings, aString)
 				}
 			}
 			//fmt.Println(fmt.Sprintf("pictureX: %d pictureY:%d", pictureX, pictureY))
 
 			aPicturePoint := &picturePoint{
-				realX:    x,
-				realY:    y,
+				realX:    realX,
+				realY:    realY,
 				pictureX: pictureX,
 				pictureY: pictureY,
 				value:    aString,
@@ -283,7 +361,7 @@ func populateAdjacentSeatsInGraph(coordinates []*coordinate, data [][]string, in
 
 			picturePoints = append(picturePoints, aPicturePoint)
 
-			picture[pictureX][pictureY] = aString
+			//picture[pictureY][pictureX] = aString
 			pictureY++
 			if pictureY == actualSight {
 				pictureY = 0
@@ -293,7 +371,7 @@ func populateAdjacentSeatsInGraph(coordinates []*coordinate, data [][]string, in
 		}
 	}
 
-	return picture, strings, picturePoints
+	return picturePoints
 }
 
 func occupySeat(interestingCoordinate *coordinate, data [][]string) {
@@ -304,14 +382,13 @@ func emptySeat(interestingCoordinate *coordinate, data [][]string) {
 	data[interestingCoordinate.y][interestingCoordinate.x] = "L"
 }
 
-func willASeatBecomeFilled(sight int, limitSightTo int, interestingCoordinate *coordinate, data [][]string) bool {
+func willASeatBecomeFilled(sight *vision, interestingCoordinate *coordinate, data [][]string) bool {
 	available := false
 
 	seat := data[interestingCoordinate.y][interestingCoordinate.x]
 	available = isAvailable(seat)
 	if available {
-		var picture [][]string
-		var results []string
+		//var picture [][]string
 		var picturePoints []*picturePoint
 		var coordinates []*coordinate
 		var directions []*direction
@@ -319,65 +396,89 @@ func willASeatBecomeFilled(sight int, limitSightTo int, interestingCoordinate *c
 		//coordinates = diagonalToDimensions(interestingCoordinate, sight)
 		//picture, results, picturePoints = populateAdjacentSeatsInGraph(coordinates, data, interestingCoordinate)
 
-		sight, coordinates, picture, results, directions, picturePoints = lineOfSight(sight, limitSightTo, interestingCoordinate, data)
+		sight, coordinates, directions, picturePoints = lineOfSight(sight, interestingCoordinate, data)
 		if len(directions) > 0 {
 
 		}
 
-		found := false
+		//found := false
 		//prettyPrint(picture)
 		if len(picturePoints) > 0 {
 
 		}
 
-		for i := 0; !found && i < len(results); i++ {
-			aPotentialSeat := results[i]
-			found = !isAFloor(aPotentialSeat) && !isAvailable(aPotentialSeat)
+		//if len(picture) > 0 {
+		//
+		//}
+
+		if len(coordinates) > 0 {
+
 		}
-		available = !found
 
-		pictureSays := true
-		for y := 0; pictureSays && y < len(picture); y++ {
-			for x := 0; pictureSays && x < len(picture[y]); x++ {
-				aDot := picture[y][x]
+		occupiedCount := 0
+		for i := 0; i < len(directions); i++ {
+			aDirection := directions[i]
+			occupiedCount = occupiedCount + aDirection.occupied
 
-				aPicturePoint := picturePointHavingPictureCoordinate(&coordinate{
-					y: y,
-					x: x,
-				}, picturePoints)
-
-				if !aPicturePoint.center {
-					occupied := isOccupied(aDot)
-					pictureSays = !occupied
-				}
-
-			}
 		}
-		if pictureSays != available {
-			log.Println("Start Data.......")
-			prettyPrint(data)
-			log.Println("End Data.......")
 
-			log.Println("Start coordinates.......")
-			log.Print(coordinates)
-			log.Println("End coordinates.......")
+		//for i := 0; !found && i < len(results); i++ {
+		//	aPotentialSeat := results[i]
+		//	found = !isAFloor(aPotentialSeat) && !isAvailable(aPotentialSeat)
+		//}
+		//available = !found
 
-			log.Println("Start results.......")
-			prettyPrintSimple(results)
-			log.Println("End results.......")
-
-			log.Println("Start Picture.......")
-			prettyPrint(picture)
-			log.Println("End Picture.......")
-
-			fmt.Println(fmt.Sprintf("Row: %d Column: %d", interestingCoordinate.y, interestingCoordinate.x))
-			fmt.Println(fmt.Sprintf("Algorithm: %v Picture: %v", available, pictureSays))
-
-			panic("Picture proof disagrees with other logic")
-		}
+		available = occupiedCount == 0
+		//pictureSays := true
+		//for y := 0; pictureSays && y < len(picture); y++ {
+		//	for x := 0; pictureSays && x < len(picture[y]); x++ {
+		//		aDot := picture[y][x]
+		//
+		//		aPicturePoint := picturePointHavingPictureCoordinate(&coordinate{
+		//			y: y,
+		//			x: x,
+		//		}, picturePoints)
+		//
+		//		if !aPicturePoint.center {
+		//			occupied := isOccupied(aDot)
+		//			pictureSays = !occupied
+		//		}
+		//
+		//	}
+		//}
+		//if pictureSays != available {
+		//	log.Println("Start Data.......")
+		//	prettyPrint(data)
+		//	log.Println("End Data.......")
+		//
+		//	log.Println("Start coordinates.......")
+		//	log.Print(coordinates)
+		//	log.Println("End coordinates.......")
+		//
+		//	log.Println("Start results.......")
+		//	prettyPrintSimple(results)
+		//	log.Println("End results.......")
+		//
+		//	log.Println("Start Picture.......")
+		//	prettyPrint(picture)
+		//	log.Println("End Picture.......")
+		//
+		//	fmt.Println(fmt.Sprintf("Row: %d Column: %d", interestingCoordinate.y, interestingCoordinate.x))
+		//	fmt.Println(fmt.Sprintf("Algorithm: %v Picture: %v", available, pictureSays))
+		//
+		//	panic("Picture proof disagrees with other logic")
+		//}
 	}
 
 	return available
+}
+
+func prettyPrintDirection(directions []*direction) {
+
+	for i := 0; i < len(directions); i++ {
+		aDirection := directions[i]
+		fmt.Println(fmt.Sprintf("Direction: %d Occupied: %d Open: %d Out of Bounds: %v", aDirection.direction, aDirection.occupied, aDirection.open, aDirection.outOfBounds))
+	}
 }
 
 func prettyPrint(picture [][]string) {
@@ -437,13 +538,12 @@ func picturePointHavingPictureCoordinate(aCoordinate *coordinate, picturePoints 
 
 }
 
-func lineOfSight(sight int, limitSightTo int, interestingCoordinate *coordinate, data [][]string) (int, []*coordinate, [][]string, []string, []*direction, []*picturePoint) {
-	var picture [][]string
-	var results []string
+func lineOfSight(sight *vision, interestingCoordinate *coordinate, data [][]string) (*vision, []*coordinate, []*direction, []*picturePoint) {
+
 	var coordinates []*coordinate
 	var picturePoints []*picturePoint
 	coordinates = diagonalToDimensions(interestingCoordinate, sight)
-	picture, results, picturePoints = populateAdjacentSeatsInGraph(coordinates, data, interestingCoordinate)
+	picturePoints = populateAdjacentSeatsInGraph(coordinates, data, interestingCoordinate)
 	//log.Println("Data")
 	//prettyPrint(data)
 	//log.Println("Picture")
@@ -451,7 +551,7 @@ func lineOfSight(sight int, limitSightTo int, interestingCoordinate *coordinate,
 
 	var directions []*direction
 	anInterestingPicturePoint := picturePointHavingRealCoordinate(interestingCoordinate, picturePoints)
-	directions = peakInAllDirections(anInterestingPicturePoint, picture)
+	directions = peakInAllDirections(anInterestingPicturePoint, picturePoints)
 
 	needToContinueLooking := false
 	if len(directions) > 0 {
@@ -464,12 +564,13 @@ func lineOfSight(sight int, limitSightTo int, interestingCoordinate *coordinate,
 		}
 	}
 
-	if needToContinueLooking && limitSightTo == 0 || (limitSightTo > 0 && sight < limitSightTo) {
-		sight++
-		sight, coordinates, picture, results, directions, picturePoints = lineOfSight(sight, limitSightTo, interestingCoordinate, data)
+	increaseVision := needToContinueLooking && (sight.allowedToIncreaseVision)
+	if increaseVision {
+		sight.sight++
+		sight, coordinates, directions, picturePoints = lineOfSight(sight, interestingCoordinate, data)
 	}
 
-	return sight, coordinates, picture, results, directions, picturePoints
+	return sight, coordinates, directions, picturePoints
 
 }
 
@@ -481,7 +582,7 @@ type direction struct {
 	outOfBounds bool
 }
 
-func peakInAllDirections(anInterestingPicturePoint *picturePoint, picture [][]string) []*direction {
+func peakInAllDirections(anInterestingPicturePoint *picturePoint, picturePoints []*picturePoint) []*direction {
 
 	interestingCoordinate := &coordinate{
 		y: anInterestingPicturePoint.pictureY,
@@ -606,15 +707,18 @@ func peakInAllDirections(anInterestingPicturePoint *picturePoint, picture [][]st
 	//log.Println("===========================================")
 	//prettyPrint(picture)
 	//log.Println("===========================================")
-	if picture != nil {
-		processAlgorithmToFindFirstSeatAndUpdatePicture(picture, interestingCoordinate, seekAlgorithm1, directions[0])
-		processAlgorithmToFindFirstSeatAndUpdatePicture(picture, interestingCoordinate, seekAlgorithm2, directions[1])
-		processAlgorithmToFindFirstSeatAndUpdatePicture(picture, interestingCoordinate, seekAlgorithm3, directions[2])
-		processAlgorithmToFindFirstSeatAndUpdatePicture(picture, interestingCoordinate, seekAlgorithm4, directions[3])
-		processAlgorithmToFindFirstSeatAndUpdatePicture(picture, interestingCoordinate, seekAlgorithm5, directions[4])
-		processAlgorithmToFindFirstSeatAndUpdatePicture(picture, interestingCoordinate, seekAlgorithm6, directions[5])
-		processAlgorithmToFindFirstSeatAndUpdatePicture(picture, interestingCoordinate, seekAlgorithm7, directions[6])
-		processAlgorithmToFindFirstSeatAndUpdatePicture(picture, interestingCoordinate, seekAlgorithm8, directions[7])
+	graphBounds := graphBoundsFrom(picturePoints)
+
+	//if picture != nil {
+	if len(picturePoints) > 0 {
+		processAlgorithmToFindFirstSeatAndUpdatePicture(graphBounds, picturePoints, interestingCoordinate, seekAlgorithm1, directions[0])
+		processAlgorithmToFindFirstSeatAndUpdatePicture(graphBounds, picturePoints, interestingCoordinate, seekAlgorithm2, directions[1])
+		processAlgorithmToFindFirstSeatAndUpdatePicture(graphBounds, picturePoints, interestingCoordinate, seekAlgorithm3, directions[2])
+		processAlgorithmToFindFirstSeatAndUpdatePicture(graphBounds, picturePoints, interestingCoordinate, seekAlgorithm4, directions[3])
+		processAlgorithmToFindFirstSeatAndUpdatePicture(graphBounds, picturePoints, interestingCoordinate, seekAlgorithm5, directions[4])
+		processAlgorithmToFindFirstSeatAndUpdatePicture(graphBounds, picturePoints, interestingCoordinate, seekAlgorithm6, directions[5])
+		processAlgorithmToFindFirstSeatAndUpdatePicture(graphBounds, picturePoints, interestingCoordinate, seekAlgorithm7, directions[6])
+		processAlgorithmToFindFirstSeatAndUpdatePicture(graphBounds, picturePoints, interestingCoordinate, seekAlgorithm8, directions[7])
 	}
 
 	//fmt.Println(fmt.Sprintf("Occupied %d Open: %d", occupied, open))
@@ -623,12 +727,21 @@ func peakInAllDirections(anInterestingPicturePoint *picturePoint, picture [][]st
 	return directions
 }
 
-func processAlgorithmToFindFirstSeatAndUpdatePicture(picture [][]string, interestingCoordinate *coordinate, seekAlgorithm func(aCoordinate *coordinate) *coordinate, aDirection *direction) *direction {
+func graphBoundsFrom(picturePoints []*picturePoint) *coordinate {
+
+	length := adjustSightBasedOnPicturePoints(picturePoints)
+
+	y := length
+	x := length
 
 	graphBounds := &coordinate{
-		y: len(picture),
-		x: len(picture[len(picture)-1]),
+		y: y,
+		x: x,
 	}
+	return graphBounds
+}
+
+func processAlgorithmToFindFirstSeatAndUpdatePicture(graphBounds *coordinate, picturePoints []*picturePoint, interestingCoordinate *coordinate, seekAlgorithm func(aCoordinate *coordinate) *coordinate, aDirection *direction) *direction {
 
 	data := ""
 
@@ -659,7 +772,19 @@ func processAlgorithmToFindFirstSeatAndUpdatePicture(picture [][]string, interes
 	for stop := false; !stop; stop = stopAlgorithm(graphBounds, adjustedCoordinate, data) {
 		if !(adjustedCoordinate.x == interestingCoordinate.x && adjustedCoordinate.y == interestingCoordinate.y) {
 
-			data = picture[adjustedCoordinate.y][adjustedCoordinate.x]
+			//data = picture[adjustedCoordinate.y][adjustedCoordinate.x]
+
+			aPictureCoordinate := &coordinate{
+				y: adjustedCoordinate.y,
+				x: adjustedCoordinate.x,
+			}
+			aPicturePointForData := picturePointHavingPictureCoordinate(aPictureCoordinate, picturePoints)
+
+			//if data != aPicturePointForData.value{
+			//	log.Printf("Picture :y %d :x %d value: %s mismatch picture point :y %d :x %d value: %s", adjustedCoordinate.y, adjustedCoordinate.x, data, aPictureCoordinate.y, aPictureCoordinate.x, aPicturePointForData.value)
+			//}
+
+			data = aPicturePointForData.value
 			aDirection.values = append(aDirection.values, data)
 
 			if successAlgorithm(data, "#") {
@@ -668,7 +793,7 @@ func processAlgorithmToFindFirstSeatAndUpdatePicture(picture [][]string, interes
 			} else if successAlgorithm(data, "L") {
 				open++
 				break
-			} else if successAlgorithm(data, " ") {
+			} else if successAlgorithm(data, "") {
 				outOfBounds = true
 				break
 			}
@@ -682,22 +807,21 @@ func processAlgorithmToFindFirstSeatAndUpdatePicture(picture [][]string, interes
 	return aDirection
 }
 
-func willASeatBecomeVacant(sight int, limitSightTo int, interestingCoordinate *coordinate, data [][]string, tolerance int) bool {
+func willASeatBecomeVacant(sight *vision, interestingCoordinate *coordinate, data [][]string, tolerance int) bool {
 	willBecomeVacant := false
 	seat := data[interestingCoordinate.y][interestingCoordinate.x]
 	if !isAFloor(seat) {
 		occupied := isOccupied(seat)
 
 		if occupied {
-			var picture [][]string
-			var results []string
+			//var picture [][]string
 			var coordinates []*coordinate
 			var picturePoints []*picturePoint
 			var directions []*direction
 			//coordinates = diagonalToDimensions(interestingCoordinate, sight)
 			//picture, results, picturePoints = populateAdjacentSeatsInGraph(coordinates, data, interestingCoordinate)
 
-			sight, coordinates, picture, results, directions, picturePoints = lineOfSight(sight, limitSightTo, interestingCoordinate, data)
+			sight, coordinates, directions, picturePoints = lineOfSight(sight, interestingCoordinate, data)
 
 			if len(coordinates) > 0 {
 
@@ -708,40 +832,34 @@ func willASeatBecomeVacant(sight int, limitSightTo int, interestingCoordinate *c
 			if len(picturePoints) > 0 {
 
 			}
+
+			//if len(picture) > 0 {
+			//
+			//}
+
 			//prettyPrint(picture)
 
 			occupiedCount := 0
-			for i := 0; i < len(results); i++ {
-				aPotentialSeat := results[i]
-				if isOccupied(aPotentialSeat) {
-					occupiedCount++
-				}
+			//for i := 0; i < len(results); i++ {
+			//	aPotentialSeat := results[i]
+			//	if isOccupied(aPotentialSeat) {
+			//		occupiedCount++
+			//	}
+			//}
+			//willBecomeVacant = (occupiedCount >= tolerance)
+
+			//pictureSays := false
+			//occupiedCount = 0
+			for i := 0; i < len(directions); i++ {
+				aDirection := directions[i]
+				occupiedCount = occupiedCount + aDirection.occupied
+
 			}
 			willBecomeVacant = (occupiedCount >= tolerance)
-
-			pictureSays := false
-			occupiedCount = 0
-			for y := 0; y < len(picture); y++ {
-				for x := 0; x < len(picture[y]); x++ {
-					aDot := picture[y][x]
-
-					aPicturePoint := picturePointHavingPictureCoordinate(&coordinate{
-						y: y,
-						x: x,
-					}, picturePoints)
-
-					if !aPicturePoint.center {
-						if isOccupied(aDot) {
-							occupiedCount++
-						}
-					}
-
-				}
-			}
-			pictureSays = (occupiedCount >= tolerance)
-			if pictureSays != willBecomeVacant {
-				panic("Picture proof disagrees with other logic")
-			}
+			//pictureSays = (occupiedCount >= tolerance)
+			//if pictureSays != willBecomeVacant {
+			//	panic("Picture proof disagrees with other logic")
+			//}
 		}
 	}
 
@@ -784,11 +902,11 @@ func Parse(aFilePart string) []string {
 	return data
 }
 
-func diagonalToDimensions(interestingCoordinate *coordinate, sight int) []*coordinate {
+func diagonalToDimensions(interestingCoordinate *coordinate, sight *vision) []*coordinate {
 	results := make([]*coordinate, 0)
 
-	for y := interestingCoordinate.y - sight; y <= (interestingCoordinate.y + sight); y++ {
-		for x := interestingCoordinate.x - sight; x <= (interestingCoordinate.x + sight); x++ {
+	for y := interestingCoordinate.y - sight.sight; y <= (interestingCoordinate.y + sight.sight); y++ {
+		for x := interestingCoordinate.x - sight.sight; x <= (interestingCoordinate.x + sight.sight); x++ {
 
 			coordinate := &coordinate{
 				y: y,
