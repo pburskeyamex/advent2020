@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"fmt"
 	"log"
+	"math"
 	"os"
 	"strconv"
 	strings2 "strings"
@@ -73,6 +74,10 @@ type waypoint struct {
 	direction *compassDirection
 	value     int
 }
+type compositeWaypoint struct {
+	x *waypoint
+	y *waypoint
+}
 
 type movement struct {
 	direction *direction
@@ -88,6 +93,7 @@ type position struct {
 	orientation       *compassDirection
 	bearingMovement   *bearing
 	manhattanDistance *manhattanDistance
+	waypoint          *compositeWaypoint
 }
 
 type bearing struct {
@@ -142,8 +148,8 @@ func main() {
 
 	//proof("day_11_sample_data_2.txt")
 
-	//data := Parse("day_11_sample_data.txt")
-	data := Parse("day_12_data.txt")
+	data := Parse("day_12_sample_data.txt")
+	//data := Parse("day_12_data.txt")
 
 	movements := make([]*movement, 0)
 
@@ -160,36 +166,61 @@ func main() {
 			direction: EAST,
 			distance:  0,
 		},
+		waypoint: &compositeWaypoint{
+			x: &waypoint{
+				direction: EAST,
+				value:     10,
+			},
+			y: &waypoint{
+				direction: NORTH,
+				value:     1,
+			},
+		},
 	}
 	positions = append(positions, startingPosition)
-
-	eastWaypoint := &waypoint{
-		direction: EAST,
-		value:     10,
-	}
-	northWaypoint := &waypoint{
-		direction: NORTH,
-		value:     1,
-	}
-	westWaypoint := &waypoint{
-		direction: WEST,
-		value:     0,
-	}
-	southWaypoint := &waypoint{
-		direction: SOUTH,
-		value:     0,
-	}
 
 	for i := 0; i < len(movements); i++ {
 
 		aMovement := movements[i]
 
 		last := lastPosition(positions)
+
+		//aCompositeWaypoint := &compositeWaypoint{
+		//	east:  &waypoint{
+		//		direction: EAST,
+		//		value:     last.waypoint.east.value,
+		//	},
+		//	north: &waypoint{
+		//		direction: NORTH,
+		//		value:     last.waypoint.north.value,
+		//	},
+		//	west:  &waypoint{
+		//		direction: WEST,
+		//		value:     last.waypoint.west.value,
+		//	},
+		//	south: &waypoint{
+		//		direction: SOUTH,
+		//		value:     last.waypoint.south.value,
+		//	},
+		//}
+
 		var aMovementCompassDirection *compassDirection
 		var anOrientationCompassDirection *compassDirection
 
 		anOrientationCompassDirection = last.orientation
 		aMovementValue := aMovement.value
+
+		compositeWaypoint := &compositeWaypoint{
+			x: &waypoint{
+				direction: last.waypoint.x.direction,
+				value:     last.waypoint.x.value,
+			},
+			y: &waypoint{
+				direction: last.waypoint.y.direction,
+				value:     last.waypoint.y.value,
+			},
+		}
+
 		if aMovement.direction.value == "F" {
 			aMovementCompassDirection = last.orientation
 		} else if aMovement.direction.value == "E" {
@@ -207,6 +238,20 @@ func main() {
 
 			aMovementValue = 0
 			aMovementCompassDirection = anOrientationCompassDirection
+
+			var radians float64
+			/*x rads in degrees - > x*180/pi
+			x degrees in rads -> x*pi/180
+
+			*/
+
+			aFloat := 180 / math.Pi
+			radians = float64(aMovement.value) * aFloat
+
+			rotatedX := (math.Cos(radians) * float64(last.waypoint.x.value)) - (math.Sin(radians) * float64(last.waypoint.y.value))
+			rotatedY := (math.Cos(radians) * float64(last.waypoint.x.value)) + (math.Sin(radians) * float64(last.waypoint.y.value))
+			log.Println(rotatedX)
+			log.Println(rotatedY)
 
 		} else if aMovement.direction.value == "L" {
 
@@ -226,6 +271,7 @@ func main() {
 				direction: aMovementCompassDirection,
 				distance:  aMovementValue,
 			},
+			waypoint: compositeWaypoint,
 		}
 		nextPosition.manhattanDistance = &manhattanDistance{}
 		nextPosition.manhattanDistance.collect(nextPosition)
