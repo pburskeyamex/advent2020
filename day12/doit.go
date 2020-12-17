@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"fmt"
 	"log"
-	"math"
 	"os"
 	"strconv"
 	strings2 "strings"
@@ -70,13 +69,13 @@ type direction struct {
 	value string
 }
 
-type waypoint struct {
+type compassValue struct {
 	direction *compassDirection
 	value     int
 }
-type compositeWaypoint struct {
-	x *waypoint
-	y *waypoint
+type ddPoint struct {
+	x *compassValue
+	y *compassValue
 }
 
 type movement struct {
@@ -89,11 +88,11 @@ type compassDirection struct {
 	description string
 }
 
-type position struct {
+type vessel struct {
 	orientation       *compassDirection
-	bearingMovement   *bearing
+	position          *ddPoint
 	manhattanDistance *manhattanDistance
-	waypoint          *compositeWaypoint
+	waypoint          *ddPoint
 }
 
 type bearing struct {
@@ -158,20 +157,26 @@ func main() {
 		movements = append(movements, aMovement)
 	}
 
-	positions := make([]*position, 0)
+	positions := make([]*vessel, 0)
 
-	startingPosition := &position{
+	startingPosition := &vessel{
 		orientation: EAST,
-		bearingMovement: &bearing{
-			direction: EAST,
-			distance:  0,
+		position: &ddPoint{
+			x: &compassValue{
+				direction: nil,
+				value:     0,
+			},
+			y: &compassValue{
+				direction: nil,
+				value:     0,
+			},
 		},
-		waypoint: &compositeWaypoint{
-			x: &waypoint{
+		waypoint: &ddPoint{
+			x: &compassValue{
 				direction: EAST,
 				value:     10,
 			},
-			y: &waypoint{
+			y: &compassValue{
 				direction: NORTH,
 				value:     1,
 			},
@@ -185,41 +190,30 @@ func main() {
 
 		last := lastPosition(positions)
 
-		//aCompositeWaypoint := &compositeWaypoint{
-		//	east:  &waypoint{
-		//		direction: EAST,
-		//		value:     last.waypoint.east.value,
-		//	},
-		//	north: &waypoint{
-		//		direction: NORTH,
-		//		value:     last.waypoint.north.value,
-		//	},
-		//	west:  &waypoint{
-		//		direction: WEST,
-		//		value:     last.waypoint.west.value,
-		//	},
-		//	south: &waypoint{
-		//		direction: SOUTH,
-		//		value:     last.waypoint.south.value,
-		//	},
-		//}
-
-		var aMovementCompassDirection *compassDirection
-		var anOrientationCompassDirection *compassDirection
-
-		anOrientationCompassDirection = last.orientation
-		aMovementValue := aMovement.value
-
-		compositeWaypoint := &compositeWaypoint{
-			x: &waypoint{
-				direction: last.waypoint.x.direction,
-				value:     last.waypoint.x.value,
+		nextPosition := &vessel{
+			orientation: last.orientation,
+			position: &ddPoint{
+				x: &compassValue{
+					direction: last.position.x.direction,
+					value:     last.position.x.value,
+				},
+				y: &compassValue{
+					direction: last.position.y.direction,
+					value:     last.position.y.value,
+				},
 			},
-			y: &waypoint{
-				direction: last.waypoint.y.direction,
-				value:     last.waypoint.y.value,
+			waypoint: &ddPoint{
+				x: &compassValue{
+					direction: last.waypoint.x.direction,
+					value:     last.waypoint.x.value,
+				},
+				y: &compassValue{
+					direction: last.waypoint.y.direction,
+					value:     last.waypoint.y.value,
+				},
 			},
 		}
+		positions = append(positions, startingPosition)
 
 		if aMovement.direction.value == "F" {
 			aMovementCompassDirection = last.orientation
@@ -233,25 +227,51 @@ func main() {
 			aMovementCompassDirection = NORTH
 		} else if aMovement.direction.value == "R" {
 
-			aNewDirection := rotate(aMovement.value, anOrientationCompassDirection)
-			anOrientationCompassDirection = aNewDirection
+			/*
+				fun rotateLeft(): Point2D =
+				    Point2D(x = y * -1, y = x)
 
-			aMovementValue = 0
-			aMovementCompassDirection = anOrientationCompassDirection
+				fun rotateRight(): Point2D =
+				    Point2D(x = y, y = x * -1)
+			*/
 
-			var radians float64
+			x := nextPosition.waypoint.y.value
+			if x < 0 {
+				nextPosition.waypoint.x.direction = WEST
+			} else {
+				nextPosition.waypoint.x.direction = EAST
+			}
+
+			y := nextPosition.waypoint.x.value * -1
+			if y < 0 {
+				nextPosition.waypoint.y.direction = SOUTH
+			} else {
+				nextPosition.waypoint.y.direction = NORTH
+			}
+			nextPosition.waypoint.y.value = Abs(y)
+			nextPosition.waypoint.x.value = Abs(x)
+
+			//
+			//aNewDirection := rotate(aMovement.value, anOrientationCompassDirection)
+			//anOrientationCompassDirection = aNewDirection
+			//
+			//aMovementValue = 0
+			//aMovementCompassDirection = anOrientationCompassDirection
+
+			//var radians float64
 			/*x rads in degrees - > x*180/pi
 			x degrees in rads -> x*pi/180
 
 			*/
 
-			aFloat := 180 / math.Pi
-			radians = float64(aMovement.value) * aFloat
-
-			rotatedX := (math.Cos(radians) * float64(last.waypoint.x.value)) - (math.Sin(radians) * float64(last.waypoint.y.value))
-			rotatedY := (math.Cos(radians) * float64(last.waypoint.x.value)) + (math.Sin(radians) * float64(last.waypoint.y.value))
-			log.Println(rotatedX)
-			log.Println(rotatedY)
+			//aFloat := 180 / math.Pi
+			//
+			//radians = float64(aMovement.value) * aFloat
+			//
+			//rotatedX := (math.Cos(radians) * float64(last.waypoint.x.value)) - (math.Sin(radians) * float64(last.waypoint.y.value))
+			//rotatedY := (math.Cos(radians) * float64(last.waypoint.x.value)) + (math.Sin(radians) * float64(last.waypoint.y.value))
+			//log.Println(rotatedX)
+			//log.Println(rotatedY)
 
 		} else if aMovement.direction.value == "L" {
 
@@ -261,18 +281,34 @@ func main() {
 			aMovementValue = 0
 			aMovementCompassDirection = anOrientationCompassDirection
 
+			/*
+				fun rotateLeft(): Point2D =
+				    Point2D(x = y * -1, y = x)
+
+				fun rotateRight(): Point2D =
+				    Point2D(x = y, y = x * -1)
+			*/
+
+			x := nextPosition.waypoint.y.value * -1
+			if x < 0 {
+				nextPosition.waypoint.x.direction = WEST
+			} else {
+				nextPosition.waypoint.x.direction = EAST
+			}
+
+			y := nextPosition.waypoint.x.value
+			if y < 0 {
+				nextPosition.waypoint.y.direction = SOUTH
+			} else {
+				nextPosition.waypoint.y.direction = NORTH
+			}
+			nextPosition.waypoint.y.value = Abs(y)
+			nextPosition.waypoint.x.value = Abs(x)
+
 		} else {
 			log.Panicf("Direction: %s not understood", aMovement.direction.value)
 		}
 
-		nextPosition := &position{
-			orientation: anOrientationCompassDirection,
-			bearingMovement: &bearing{
-				direction: aMovementCompassDirection,
-				distance:  aMovementValue,
-			},
-			waypoint: compositeWaypoint,
-		}
 		nextPosition.manhattanDistance = &manhattanDistance{}
 		nextPosition.manhattanDistance.collect(nextPosition)
 
@@ -291,13 +327,13 @@ func main() {
 }
 
 type manhattanDistance struct {
-	ew int
-	ns int
+	x int
+	y int
 }
 
 func (md *manhattanDistance) distance() int {
-	y := Abs(md.ns)
-	x := Abs(md.ew)
+	y := Abs(md.y)
+	x := Abs(md.x)
 
 	return y + x
 }
@@ -310,24 +346,18 @@ func Abs(x int) int {
 	return x
 }
 
-func (md *manhattanDistance) collectAll(positions []*position) {
+func (md *manhattanDistance) collectAll(positions []*vessel) {
 	for i := 0; i < len(positions); i++ {
 		aPosition := positions[i]
 		md.collect(aPosition)
 	}
 }
 
-func (md *manhattanDistance) collect(aPosition *position) {
-	aDirection := aPosition.bearingMovement.direction
-	if aDirection == EAST {
-		md.ew += aPosition.bearingMovement.distance
-	} else if aDirection == WEST {
-		md.ew -= aPosition.bearingMovement.distance
-	} else if aDirection == NORTH {
-		md.ns += aPosition.bearingMovement.distance
-	} else if aDirection == SOUTH {
-		md.ns -= aPosition.bearingMovement.distance
-	}
+func (md *manhattanDistance) collect(aPosition *vessel) {
+
+	md.y = aPosition.position.y.value
+	md.x = aPosition.position.x.value
+
 }
 
 func rotate(degrees int, start *compassDirection) *compassDirection {
@@ -358,7 +388,7 @@ func rotate(degrees int, start *compassDirection) *compassDirection {
 
 }
 
-func lastPosition(positions []*position) *position {
+func lastPosition(positions []*vessel) *vessel {
 	return positions[len(positions)-1]
 }
 
