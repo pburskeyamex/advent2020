@@ -216,15 +216,17 @@ func main() {
 		positions = append(positions, startingPosition)
 
 		if aMovement.direction.value == "F" {
-			aMovementCompassDirection = last.orientation
+			nextPosition.waypoint.x.value = nextPosition.waypoint.x.value * aMovement.value
+			nextPosition.waypoint.y.value = nextPosition.waypoint.y.value * aMovement.value
+
 		} else if aMovement.direction.value == "E" {
-			aMovementCompassDirection = EAST
+			nextPosition.waypoint.x.value += aMovement.value
 		} else if aMovement.direction.value == "W" {
-			aMovementCompassDirection = WEST
+			nextPosition.waypoint.x.value -= aMovement.value
 		} else if aMovement.direction.value == "S" {
-			aMovementCompassDirection = SOUTH
+			nextPosition.waypoint.y.value -= aMovement.value
 		} else if aMovement.direction.value == "N" {
-			aMovementCompassDirection = NORTH
+			nextPosition.waypoint.y.value += aMovement.value
 		} else if aMovement.direction.value == "R" {
 
 			/*
@@ -275,11 +277,11 @@ func main() {
 
 		} else if aMovement.direction.value == "L" {
 
-			aNewDirection := rotate((aMovement.value * -1), anOrientationCompassDirection)
-			anOrientationCompassDirection = aNewDirection
-
-			aMovementValue = 0
-			aMovementCompassDirection = anOrientationCompassDirection
+			//aNewDirection := rotate((aMovement.value * -1), anOrientationCompassDirection)
+			//anOrientationCompassDirection = aNewDirection
+			//
+			//aMovementValue = 0
+			//aMovementCompassDirection = anOrientationCompassDirection
 
 			/*
 				fun rotateLeft(): Point2D =
