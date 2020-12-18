@@ -143,11 +143,220 @@ func parse(aString string) *movement {
 	return aMove
 }
 
+//func rotateLeft(degrees int, x int, y int) (int, *compassDirection, int, *compassDirection){
+//	count := Abs(degrees) / 90
+//	var newX, newY int
+//	var xDirection, yDirection *compassDirection
+//
+//	for rotationCount := 0; rotationCount < count; rotationCount++ {
+//		newX = y * -1
+//		if newX < 0 {
+//			xDirection = WEST
+//		} else {
+//			xDirection = EAST
+//		}
+//
+//		newY = x
+//		if newY < 0 {
+//			yDirection = SOUTH
+//		} else {
+//			yDirection = NORTH
+//		}
+//		newY = Abs(newY)
+//		newX = Abs(newX)
+//	}
+//	return newX, xDirection, newY, yDirection
+//}
+
+func rotateRight(degrees int, x int, xDirection *compassDirection, y int, yDirection *compassDirection) (int, *compassDirection, int, *compassDirection) {
+	count := Abs(degrees) / 90
+	var currentX, currentY, newX, newY int
+	var currentXDirection, newXDirection, currentYDirection, newYDirection *compassDirection
+
+	currentX = x
+	currentXDirection = xDirection
+	currentY = y
+	currentYDirection = yDirection
+	for rotationCount := 0; rotationCount < count; rotationCount++ {
+		newX, newXDirection, newY, newYDirection = rotateRightOnce(currentX, currentXDirection, currentY, currentYDirection)
+		fmt.Printf("Rotation Right: %d\n", rotationCount+1)
+		fmt.Printf("%d %s %d %s", currentX, currentXDirection.description, currentY, currentYDirection.description)
+		fmt.Printf(" ----> ")
+		fmt.Printf("%d %s %d %s", newX, newXDirection.description, newY, newYDirection.description)
+		fmt.Printf("\n")
+
+		currentX = newX
+		currentXDirection = newXDirection
+		currentY = newY
+		currentYDirection = newYDirection
+
+	}
+	return newX, newXDirection, newY, newYDirection
+}
+
+func rotateLeft(degrees int, x int, xDirection *compassDirection, y int, yDirection *compassDirection) (int, *compassDirection, int, *compassDirection) {
+	count := Abs(degrees) / 90
+	var currentX, currentY, newX, newY int
+	var currentXDirection, newXDirection, currentYDirection, newYDirection *compassDirection
+
+	currentX = x
+	currentXDirection = xDirection
+	currentY = y
+	currentYDirection = yDirection
+	for rotationCount := 0; rotationCount < count; rotationCount++ {
+		newX, newXDirection, newY, newYDirection = rotateLeftOnce(currentX, currentXDirection, currentY, currentYDirection)
+		fmt.Printf("Rotation Left: %d\n", rotationCount+1)
+		fmt.Printf("%d %s %d %s", currentX, currentXDirection.description, currentY, currentYDirection.description)
+		fmt.Printf(" ----> ")
+		fmt.Printf("%d %s %d %s", newX, newXDirection.description, newY, newYDirection.description)
+		fmt.Printf("\n")
+
+		currentX = newX
+		currentXDirection = newXDirection
+		currentY = newY
+		currentYDirection = newYDirection
+
+	}
+	return newX, newXDirection, newY, newYDirection
+}
+
+func rotateRightOnce(x int, xDirection *compassDirection, y int, yDirection *compassDirection) (int, *compassDirection, int, *compassDirection) {
+
+	var newX, newY, realX, realY int
+	var newXDirection, newYDirection *compassDirection
+
+	realX = x
+	if xDirection == WEST {
+		realX = realX * -1
+	}
+	realY = y
+	if yDirection == SOUTH {
+		realY = realY * -1
+	}
+
+	newX = realY
+	newY = realX * -1
+
+	if newX < 0 {
+		newXDirection = WEST
+	} else {
+		newXDirection = EAST
+	}
+
+	if newY < 0 {
+		newYDirection = SOUTH
+	} else {
+		newYDirection = NORTH
+	}
+	newY = Abs(newY)
+	newX = Abs(newX)
+	//fmt.Printf("%d %s %d %s", x, xDirection.description, y, yDirection.description)
+	//fmt.Printf(" --------> ")
+	//fmt.Printf("%d %s %d %s", newX, newXDirection.description, newY, newYDirection.description)
+	//fmt.Printf("\n")
+
+	return newX, newXDirection, newY, newYDirection
+}
+
+func rotateLeftOnce(x int, xDirection *compassDirection, y int, yDirection *compassDirection) (int, *compassDirection, int, *compassDirection) {
+
+	var newX, newY, realX, realY int
+	var newXDirection, newYDirection *compassDirection
+
+	realX = x
+	if xDirection == WEST {
+		realX = realX * -1
+	}
+	realY = y
+	if yDirection == SOUTH {
+		realY = realY * -1
+	}
+
+	newY = realX
+	newX = realY * -1
+
+	if newX < 0 {
+		newXDirection = WEST
+	} else {
+		newXDirection = EAST
+	}
+
+	if newY < 0 {
+		newYDirection = SOUTH
+	} else {
+		newYDirection = NORTH
+	}
+	newY = Abs(newY)
+	newX = Abs(newX)
+	//fmt.Printf("%d %s %d %s", x, xDirection.description, y, yDirection.description)
+	//fmt.Printf(" --------> ")
+	//fmt.Printf("%d %s %d %s", newX, newXDirection.description, newY, newYDirection.description)
+	//fmt.Printf("\n")
+
+	return newX, newXDirection, newY, newYDirection
+}
+
+func addX(start int, startDirection *compassDirection, value int, valueDirection *compassDirection) (int, *compassDirection) {
+
+	adjustedStart := start
+	if startDirection == WEST {
+		adjustedStart *= -1
+	}
+
+	adjustedValue := value
+	if valueDirection == WEST {
+		adjustedValue *= -1
+	}
+
+	newValue := adjustedStart + adjustedValue
+	direction := EAST
+	if newValue < 0 {
+		direction = WEST
+		newValue = Abs(newValue)
+	}
+	return newValue, direction
+
+}
+
+func addY(start int, startDirection *compassDirection, value int, valueDirection *compassDirection) (int, *compassDirection) {
+
+	adjustedStart := start
+	if startDirection == SOUTH {
+		adjustedStart *= -1
+	}
+
+	adjustedValue := value
+	if valueDirection == SOUTH {
+		adjustedValue *= -1
+	}
+
+	newValue := adjustedStart + adjustedValue
+	direction := NORTH
+	if newValue < 0 {
+		direction = SOUTH
+		newValue = Abs(newValue)
+	}
+	return newValue, direction
+
+}
+
 func main() {
+
+	//newX, xDirection, newY, yDirection := rotateRight(360, 10, EAST, 4, NORTH)
+	//log.Print(newX)
+	//log.Print(xDirection)
+	//log.Print(newY)
+	//log.Print(yDirection)
+	//
+	//newX, xDirection, newY, yDirection = rotateLeft(360, 10, EAST, 4, NORTH)
+	//log.Print(newX)
+	//log.Print(xDirection)
+	//log.Print(newY)
+	//log.Print(yDirection)
 
 	//proof("day_11_sample_data_2.txt")
 
-	data := Parse("day_12_sample_data.txt")
+	data := Parse("day_12_data.txt")
 	//data := Parse("day_12_data.txt")
 
 	movements := make([]*movement, 0)
@@ -163,11 +372,11 @@ func main() {
 		orientation: EAST,
 		position: &ddPoint{
 			x: &compassValue{
-				direction: nil,
+				direction: EAST,
 				value:     0,
 			},
 			y: &compassValue{
-				direction: nil,
+				direction: NORTH,
 				value:     0,
 			},
 		},
@@ -216,96 +425,87 @@ func main() {
 		positions = append(positions, startingPosition)
 
 		if aMovement.direction.value == "F" {
-			nextPosition.waypoint.x.value = nextPosition.waypoint.x.value * aMovement.value
-			nextPosition.waypoint.y.value = nextPosition.waypoint.y.value * aMovement.value
-
-		} else if aMovement.direction.value == "E" {
-			nextPosition.waypoint.x.value += aMovement.value
-		} else if aMovement.direction.value == "W" {
-			nextPosition.waypoint.x.value -= aMovement.value
-		} else if aMovement.direction.value == "S" {
-			nextPosition.waypoint.y.value -= aMovement.value
-		} else if aMovement.direction.value == "N" {
-			nextPosition.waypoint.y.value += aMovement.value
-		} else if aMovement.direction.value == "R" {
 
 			/*
-				fun rotateLeft(): Point2D =
-				    Point2D(x = y * -1, y = x)
-
-				fun rotateRight(): Point2D =
-				    Point2D(x = y, y = x * -1)
+				plot where we are starting....
 			*/
-
-			x := nextPosition.waypoint.y.value
-			if x < 0 {
-				nextPosition.waypoint.x.direction = WEST
-			} else {
-				nextPosition.waypoint.x.direction = EAST
+			startingX := nextPosition.position.x.value
+			if nextPosition.position.x.direction == WEST {
+				startingX = startingX * -1
+			}
+			startingY := nextPosition.position.y.value
+			if nextPosition.position.y.direction == SOUTH {
+				startingY = startingY * -1
 			}
 
-			y := nextPosition.waypoint.x.value * -1
-			if y < 0 {
-				nextPosition.waypoint.y.direction = SOUTH
-			} else {
-				nextPosition.waypoint.y.direction = NORTH
-			}
-			nextPosition.waypoint.y.value = Abs(y)
-			nextPosition.waypoint.x.value = Abs(x)
-
-			//
-			//aNewDirection := rotate(aMovement.value, anOrientationCompassDirection)
-			//anOrientationCompassDirection = aNewDirection
-			//
-			//aMovementValue = 0
-			//aMovementCompassDirection = anOrientationCompassDirection
-
-			//var radians float64
-			/*x rads in degrees - > x*180/pi
-			x degrees in rads -> x*pi/180
-
+			/*
+				find the adjustment to the position by moving to the waypoint n times.....
 			*/
+			wayPoint := nextPosition.waypoint
+			wayPointAdjustmentX := 0
+			wayPointAdjustmentY := 0
+			for i := 0; i < aMovement.value; i++ {
+				wayPointAdjustmentX += (wayPoint.x.value)
+				wayPointAdjustmentY += (wayPoint.y.value)
+			}
 
-			//aFloat := 180 / math.Pi
-			//
-			//radians = float64(aMovement.value) * aFloat
-			//
-			//rotatedX := (math.Cos(radians) * float64(last.waypoint.x.value)) - (math.Sin(radians) * float64(last.waypoint.y.value))
-			//rotatedY := (math.Cos(radians) * float64(last.waypoint.x.value)) + (math.Sin(radians) * float64(last.waypoint.y.value))
-			//log.Println(rotatedX)
-			//log.Println(rotatedY)
+			if wayPoint.x.direction == WEST {
+				wayPointAdjustmentX = wayPointAdjustmentX * -1
+			}
+			if wayPoint.y.direction == SOUTH {
+				wayPointAdjustmentY = wayPointAdjustmentY * -1
+			}
+
+			nextPosition.position.x.value = (startingX + wayPointAdjustmentX)
+			nextPosition.position.y.value = (startingY + wayPointAdjustmentY)
+
+			if nextPosition.position.x.value < 0 {
+				nextPosition.position.x.value *= -1
+				nextPosition.position.x.direction = WEST
+			} else {
+				nextPosition.position.x.direction = EAST
+			}
+
+			if nextPosition.position.y.value < 0 {
+				nextPosition.position.y.value *= -1
+				nextPosition.position.y.direction = SOUTH
+			} else {
+				nextPosition.position.y.direction = NORTH
+			}
+
+		} else if aMovement.direction.value == "E" {
+			adjustedValue, adjustedDirection := addX(nextPosition.waypoint.x.value, nextPosition.waypoint.x.direction, aMovement.value, EAST)
+			nextPosition.waypoint.x.value = adjustedValue
+			nextPosition.waypoint.x.direction = adjustedDirection
+		} else if aMovement.direction.value == "W" {
+			adjustedValue, adjustedDirection := addX(nextPosition.waypoint.x.value, nextPosition.waypoint.x.direction, aMovement.value, WEST)
+			nextPosition.waypoint.x.value = adjustedValue
+			nextPosition.waypoint.x.direction = adjustedDirection
+		} else if aMovement.direction.value == "S" {
+			adjustedValue, adjustedDirection := addY(nextPosition.waypoint.y.value, nextPosition.waypoint.y.direction, aMovement.value, SOUTH)
+			nextPosition.waypoint.y.value = adjustedValue
+			nextPosition.waypoint.y.direction = adjustedDirection
+		} else if aMovement.direction.value == "N" {
+			adjustedValue, adjustedDirection := addY(nextPosition.waypoint.y.value, nextPosition.waypoint.y.direction, aMovement.value, NORTH)
+			nextPosition.waypoint.y.value = adjustedValue
+			nextPosition.waypoint.y.direction = adjustedDirection
+		} else if aMovement.direction.value == "R" {
+
+			newX, xDirection, newY, yDirection := rotateRight(aMovement.value, nextPosition.waypoint.x.value, nextPosition.waypoint.x.direction, nextPosition.waypoint.y.value, nextPosition.waypoint.y.direction)
+			nextPosition.waypoint.x.direction = xDirection
+			nextPosition.waypoint.x.value = newX
+
+			nextPosition.waypoint.y.direction = yDirection
+			nextPosition.waypoint.y.value = newY
 
 		} else if aMovement.direction.value == "L" {
 
-			//aNewDirection := rotate((aMovement.value * -1), anOrientationCompassDirection)
-			//anOrientationCompassDirection = aNewDirection
-			//
-			//aMovementValue = 0
-			//aMovementCompassDirection = anOrientationCompassDirection
+			newX, xDirection, newY, yDirection := rotateLeft(aMovement.value, nextPosition.waypoint.x.value, nextPosition.waypoint.x.direction, nextPosition.waypoint.y.value, nextPosition.waypoint.y.direction)
+			nextPosition.waypoint.x.direction = xDirection
+			nextPosition.waypoint.x.value = newX
 
-			/*
-				fun rotateLeft(): Point2D =
-				    Point2D(x = y * -1, y = x)
-
-				fun rotateRight(): Point2D =
-				    Point2D(x = y, y = x * -1)
-			*/
-
-			x := nextPosition.waypoint.y.value * -1
-			if x < 0 {
-				nextPosition.waypoint.x.direction = WEST
-			} else {
-				nextPosition.waypoint.x.direction = EAST
-			}
-
-			y := nextPosition.waypoint.x.value
-			if y < 0 {
-				nextPosition.waypoint.y.direction = SOUTH
-			} else {
-				nextPosition.waypoint.y.direction = NORTH
-			}
-			nextPosition.waypoint.y.value = Abs(y)
-			nextPosition.waypoint.x.value = Abs(x)
+			nextPosition.waypoint.y.direction = yDirection
+			nextPosition.waypoint.y.value = newY
 
 		} else {
 			log.Panicf("Direction: %s not understood", aMovement.direction.value)
@@ -319,12 +519,12 @@ func main() {
 	}
 
 	aManhattanDistance := &manhattanDistance{
-		ew: 0,
-		ns: 0,
+		x: 0,
+		y: 0,
 	}
 	aManhattanDistance.collectAll(positions)
 
-	fmt.Println(fmt.Sprintf("Manhattan Distance... East / West: %d North / South: %d .... Total: %d", aManhattanDistance.ew, aManhattanDistance.ns, aManhattanDistance.distance()))
+	fmt.Println(fmt.Sprintf("Manhattan Distance... East / West: %d North / South: %d .... Total: %d", aManhattanDistance.x, aManhattanDistance.y, aManhattanDistance.distance()))
 
 }
 
@@ -359,6 +559,10 @@ func (md *manhattanDistance) collect(aPosition *vessel) {
 
 	md.y = aPosition.position.y.value
 	md.x = aPosition.position.x.value
+
+}
+
+func rotateWaypointRight(degrees int, waypoint **ddPoint) {
 
 }
 
