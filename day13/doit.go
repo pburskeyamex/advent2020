@@ -10,13 +10,40 @@ import (
 )
 
 type bus struct {
-	id    int
-	times []int
+	id       int64
+	position int
+	times    []int64
 }
 
-func (b *bus) closesTimeDifferenceGreaterThan(x int) int {
+type schedule struct {
+	time   int64
+	busses []bool
+}
 
-	toFind := 0
+func (b *bus) doesBusLeaveAt(time int64) bool {
+	var result int64
+	if b.id == 0 {
+		result = 0
+	} else {
+		result = time % b.id
+	}
+
+	return (result == 0)
+}
+
+func (b *bus) completeSchedule() {
+
+	var nextTime int64
+	nextTime = 0
+	for i := 0; i < 1000; i++ {
+		nextTime = nextTime + int64(b.id)
+		b.times = append(b.times, nextTime)
+	}
+}
+
+func (b *bus) closesTimeDifferenceGreaterThan(x int64) int64 {
+
+	toFind := int64(0)
 	for i := 0; toFind <= x && i < len(b.times); i++ {
 		value := b.times[i]
 		if value >= x {
@@ -32,36 +59,146 @@ func main() {
 	data1 := data[0]
 	data2 := data[1]
 
-	goalTimeToLeave, _ := strconv.Atoi(data1)
+	var goalTimeToLeave int64
+	goalTimeToLeave, _ = strconv.ParseInt(data1, 10, 64)
 	log.Printf("%d\n", goalTimeToLeave)
 	busses := make([]*bus, 0)
 
-	for _, aString := range strings.Split(data2, ",") {
+	for i, aString := range strings.Split(data2, ",") {
+		var id int64
 		if aString != "x" {
-			id, _ := strconv.Atoi(aString)
-			bus := &bus{
-				id:    id,
-				times: make([]int, 0),
-			}
-			bus.times = append(bus.times, 0)
-			bus.times = append(bus.times, id)
-			busses = append(busses, bus)
+			id, _ = strconv.ParseInt(aString, 10, 64)
 		}
+		bus := &bus{
+			id:       id,
+			position: i,
+			times:    make([]int64, 0),
+		}
+		busses = append(busses, bus)
+
 	}
 
+	part1(busses, goalTimeToLeave)
+
+	var seed int64
+	seed = 100000000000000
+	//seed = 1
+	part2(busses, seed)
+
+	//table := tablewriter.NewWriter ( os.Stdout)
+	//table.SetHeader([]string{"Date", "ActiveCases", "TotalPositiveCases", "ProbableCases", "ResolvedCases"})
+	//table.SetBorder(false)       // Set Border to false
+	//table.AppendBulk(busses) // Add Bulk Data
+	//table.Render()
+
+}
+
+func compress(busses []*bus) []*bus {
+
+	scrubbedBusses := make([]*bus, 0)
+	//var lastKeep *bus
 	for i := 0; i < len(busses); i++ {
 		bus := busses[i]
+		//
+		//keep := lastKeep == nil
+		//keep = keep || (bus.id != 0)
+		//keep = keep || (lastKeep.id != 0 && bus.id == 0)
+		//if keep {
+		scrubbedBusses = append(scrubbedBusses, bus)
+		//lastKeep = bus
+		//}
+	}
 
-		for x := (goalTimeToLeave / bus.id); x*bus.id < (goalTimeToLeave + bus.id); x++ {
-			aTime := x * (bus.id)
-			bus.times = append(bus.times, aTime)
+	for i := 0; i < len(scrubbedBusses); i++ {
+		bus := scrubbedBusses[i]
+		bus.position = i + 1
+
+	}
+
+	return scrubbedBusses
+
+}
+
+func part2(busses []*bus, seed int64) {
+
+	busses = compress(busses)
+	var schedules []*schedule
+	var time int64
+
+	/*
+		advance until bus 1 wants to leave....
+	*/
+
+	found := false
+	for time = seed; !found; time++ {
+		bus1 := busses[0]
+		if bus1.doesBusLeaveAt(time) {
+			schedules = make([]*schedule, len(busses))
+
+			for x := 0; x < len(busses); x++ {
+				aSchedule := &schedule{
+					time:   time,
+					busses: make([]bool, len(busses)),
+				}
+				schedules[x] = aSchedule
+
+				for i := 0; i < len(busses); i++ {
+					bus := busses[i]
+					aSchedule.busses[i] = bus.doesBusLeaveAt(time)
+				}
+				time++
+			}
+
+			/*
+				validate whether the schedule has a bus leaving at its position on each time that matches the bus.
+			*/
+			scheduleLadder := true
+			for x := 0; scheduleLadder && x < len(schedules); x++ {
+				schedule := schedules[x]
+				busLeaving := schedule.busses[x]
+				scheduleLadder = scheduleLadder && busLeaving
+			}
+
+			found = scheduleLadder
+		}
+
+	}
+
+	if found {
+		startingTime := schedules[0].time
+		log.Println("Earliest Time: %d ", startingTime)
+
+	}
+
+}
+
+func part1(busses []*bus, goalTimeToLeave int64) {
+
+	scrubbedBusses := make([]*bus, 0)
+	for i := 0; i < len(busses); i++ {
+		bus := busses[i]
+		if bus.id == 0 {
+
+		} else {
+			scrubbedBusses = append(scrubbedBusses, bus)
+		}
+
+	}
+
+	for i := 0; i < len(scrubbedBusses); i++ {
+		bus := scrubbedBusses[i]
+
+		anInt64 := int64(bus.id)
+		for x := (goalTimeToLeave / anInt64); x*anInt64 < (goalTimeToLeave + anInt64); x++ {
+			aTime := x * (anInt64)
+			bus.times = append(bus.times, int64(aTime))
 		}
 	}
 
 	var closestBus *bus
 
-	for i := 0; i < len(busses); i++ {
-		bus := busses[i]
+	for i := 0; i < len(scrubbedBusses); i++ {
+		bus := scrubbedBusses[i]
 
 		difference := bus.closesTimeDifferenceGreaterThan(goalTimeToLeave)
 		if closestBus == nil || closestBus.closesTimeDifferenceGreaterThan(goalTimeToLeave) > difference {
@@ -71,9 +208,7 @@ func main() {
 	}
 
 	howLongToWait := closestBus.closesTimeDifferenceGreaterThan(goalTimeToLeave) - goalTimeToLeave
-
-	log.Printf("Bus ID: %d Time to Leave: %d. Waiting: %d minutes... Magic number: %d", closestBus.id, 0, howLongToWait, howLongToWait*closestBus.id)
-	//data := Parse("day_12_data.txt")
+	log.Printf("Bus ID: %d Time to Leave: %d. Waiting: %d minutes... Magic number: %d", closestBus.id, 0, howLongToWait, howLongToWait*int64(closestBus.id))
 
 }
 
