@@ -125,22 +125,37 @@ func part2(busses []*bus, seed int64) {
 	var schedules []*schedule
 	var time int64
 
+	schedules = make([]*schedule, len(busses))
+	for x := 0; x < len(busses); x++ {
+		aSchedule := &schedule{
+			time:   time,
+			busses: make([]bool, len(busses)),
+		}
+		schedules[x] = aSchedule
+
+		for i := 0; i < len(busses); i++ {
+
+			aSchedule.busses[i] = false
+		}
+	}
+
 	/*
 		advance until bus 1 wants to leave....
 	*/
 
+	bus1 := busses[0]
 	found := false
+	iterationCoount := 0
 	for time = seed; !found; time++ {
-		bus1 := busses[0]
+		iterationCoount++
 		if bus1.doesBusLeaveAt(time) {
-			schedules = make([]*schedule, len(busses))
+			if (iterationCoount % 1000000) == 0 {
+				log.Println(fmt.Sprintf("Iteration: %v", time))
 
+			}
 			for x := 0; x < len(busses); x++ {
-				aSchedule := &schedule{
-					time:   time,
-					busses: make([]bool, len(busses)),
-				}
-				schedules[x] = aSchedule
+				aSchedule := schedules[x]
+				aSchedule.time = time
 
 				for i := 0; i < len(busses); i++ {
 					bus := busses[i]
@@ -165,8 +180,9 @@ func part2(busses []*bus, seed int64) {
 	}
 
 	if found {
+
 		startingTime := schedules[0].time
-		log.Println("Earliest Time: %d ", startingTime)
+		log.Println("Earliest Time: ", startingTime)
 
 	}
 
@@ -235,3 +251,18 @@ func Parse(aFilePart string) []string {
 
 	return data
 }
+
+/*
+fun solvePart2(): Long {
+    var stepSize = indexedBusses.first().bus
+    var time = 0L
+    indexedBusses.drop(1).forEach { (offset, bus) ->
+        while ((time + offset) % bus != 0L) {
+            time += stepSize
+        }
+        stepSize *= bus // New Ratio!
+    }
+    return time
+}
+
+*/
