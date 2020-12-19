@@ -14,9 +14,21 @@ type bus struct {
 	times []int
 }
 
+func (b *bus) closesTimeDifferenceGreaterThan(x int) int {
+
+	toFind := 0
+	for i := 0; toFind <= x && i < len(b.times); i++ {
+		value := b.times[i]
+		if value >= x {
+			toFind = value
+		}
+	}
+	return toFind
+}
+
 func main() {
 
-	data := Parse("day_13_sample_data.txt")
+	data := Parse("day_13_data.txt")
 	data1 := data[0]
 	data2 := data[1]
 
@@ -40,13 +52,27 @@ func main() {
 	for i := 0; i < len(busses); i++ {
 		bus := busses[i]
 
-		for x := goalTimeToLeave / bus.id; x < (goalTimeToLeave * (bus.id + 1)); x++ {
-			aTime := x
+		for x := (goalTimeToLeave / bus.id); x*bus.id < (goalTimeToLeave + bus.id); x++ {
+			aTime := x * (bus.id)
 			bus.times = append(bus.times, aTime)
 		}
 	}
 
-	log.Printf(data2)
+	var closestBus *bus
+
+	for i := 0; i < len(busses); i++ {
+		bus := busses[i]
+
+		difference := bus.closesTimeDifferenceGreaterThan(goalTimeToLeave)
+		if closestBus == nil || closestBus.closesTimeDifferenceGreaterThan(goalTimeToLeave) > difference {
+			closestBus = bus
+		}
+
+	}
+
+	howLongToWait := closestBus.closesTimeDifferenceGreaterThan(goalTimeToLeave) - goalTimeToLeave
+
+	log.Printf("Bus ID: %d Time to Leave: %d. Waiting: %d minutes... Magic number: %d", closestBus.id, 0, howLongToWait, howLongToWait*closestBus.id)
 	//data := Parse("day_12_data.txt")
 
 }
