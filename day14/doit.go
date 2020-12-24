@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"fmt"
+	"math"
 	"os"
 	"strconv"
 	"strings"
@@ -88,22 +89,23 @@ func part2(data []string) {
 			var currentMapValue uint64
 			address, _ = parseMemInstruction(anInstruction)
 
-			/*
-				does address exist
-			*/
-			currentMapValue, ok := memory[address]
-			if !ok {
-				currentMapValue = address
-				memory[address] = currentMapValue
-			}
+			///*
+			//	does address exist
+			//*/
+			//currentMapValue, ok := memory[address]
+			//if !ok {
+			//	currentMapValue = address
+			//	memory[address] = currentMapValue
+			//}
 			/*
 				we are always assigning the address as the value.....
 			*/
 			currentMapValue = address
 
-			currentMapValue = applyPart2MaskTo(maskAsString, currentMapValue)
-
-			memory[address] = currentMapValue
+			mungedMemory := applyPart2MaskTo(maskAsString, currentMapValue)
+			for key, value := range mungedMemory {
+				memory[key] = value
+			}
 
 		} else {
 			panic(fmt.Sprintf("Instruction: %s not understood", anInstruction))
@@ -119,7 +121,7 @@ func part2(data []string) {
 	fmt.Println(fmt.Sprintf("Final Memory Total: %d", sum))
 
 }
-func applyPart2MaskTo(mask []string, currentMapValue uint64) uint64 {
+func applyPart2MaskTo(mask []string, currentMapValue uint64) map[uint64]uint64 {
 	var mungedValue uint64
 	mungedValue = currentMapValue
 	lengthOfMask := len(mask)
@@ -162,10 +164,12 @@ func applyPart2MaskTo(mask []string, currentMapValue uint64) uint64 {
 		}
 	}
 
+	fmt.Println("Applied mask to base value")
 	fmt.Println(fmt.Sprintf("Binary: %b", mungedValue))
 	fmt.Println(fmt.Sprintf("Mask: %s", mask))
 	mungedMemoryAddresses := make(map[uint64]uint64, 0)
 
+	positionsToVary := make([]int, 0)
 	for i := 0; i < lengthOfMask; i++ {
 
 		position := (lengthOfMask - i) - 1
@@ -174,26 +178,47 @@ func applyPart2MaskTo(mask []string, currentMapValue uint64) uint64 {
 		*/
 		aMaskValue := mask[position]
 		if aMaskValue == "X" {
-
-			var value0, value1 uint64
-
-			value0 = mungedValue
-			value1 = mungedValue
-			isBitSet := mungedValue&(1<<i) != 0
-			if isBitSet {
-				value0 = value0 ^ (1 << i)
-			}
-			value1 = mungedValue | (1 << i)
-
-			mungedMemoryAddresses[value0] = value0
-			mungedMemoryAddresses[value1] = value1
-			fmt.Println(fmt.Sprintf("Binary Value 0: %b Base 10: %d", value0, value0))
-			fmt.Println(fmt.Sprintf("Binary Value 1: %b Base 10: %d", value1, value1))
-
+			positionsToVary = append(positionsToVary, i)
 		}
 	}
 
-	return mungedValue
+	proof := math.Pow(2, float64(len(positionsToVary)))
+
+	mungedMemoryAddresses = varyBitCombinations(positionsToVary, mungedValue, mungedMemoryAddresses, int(proof))
+
+	return mungedMemoryAddresses
+}
+
+func varyBitCombinations(positionsToVary []int, mungedValue uint64, memory map[uint64]uint64, proof int) map[uint64]uint64 {
+	for i := 0; i < len(positionsToVary); i++ {
+		position := positionsToVary[i]
+		value0, value1 := varyBitsAtPosition(position, mungedValue)
+		memory[value0] = value0
+		memory[value1] = value1
+	}
+
+	if len(memory) < proof {
+		for _, value := range memory {
+			memory = varyBitCombinations(positionsToVary, value, memory, proof)
+		}
+	}
+
+	return memory
+}
+
+func varyBitsAtPosition(position int, mungedValue uint64) (value0 uint64, value1 uint64) {
+	value0 = mungedValue
+	value1 = mungedValue
+	isBitSet := mungedValue&(1<<position) != 0
+	if isBitSet {
+		value0 = value0 ^ (1 << position)
+	}
+	value1 = mungedValue | (1 << position)
+
+	//fmt.Println(fmt.Sprintf("Binary Value 0: %b Base 10: %d", value0, value0))
+	//fmt.Println(fmt.Sprintf("Binary Value 1: %b Base 10: %d", value1, value1))
+
+	return value0, value1
 }
 
 func applyPart1MaskTo(mask []string, currentMapValue uint64) uint64 {
