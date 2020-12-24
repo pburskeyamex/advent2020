@@ -11,7 +11,7 @@ import (
 
 func main() {
 
-	data := Parse("day_14_sample_data_2.txt")
+	data := Parse("day_14_data.txt")
 	//part1(data)
 	part2(data)
 
@@ -85,9 +85,9 @@ func part2(data []string) {
 			maskAsString = parseMaskInstruction(anInstruction)
 		} else if strings.Index(anInstruction, "mem") == 0 {
 			var address uint64
-			//var value uint64
+			var value uint64
 			var currentMapValue uint64
-			address, _ = parseMemInstruction(anInstruction)
+			address, value = parseMemInstruction(anInstruction)
 
 			///*
 			//	does address exist
@@ -103,7 +103,7 @@ func part2(data []string) {
 			currentMapValue = address
 
 			mungedMemory := applyPart2MaskTo(maskAsString, currentMapValue)
-			for key, value := range mungedMemory {
+			for key, _ := range mungedMemory {
 				memory[key] = value
 			}
 
