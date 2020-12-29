@@ -1,232 +1,324 @@
 package main
 
 import (
+	"bufio"
 	"fmt"
-	"log"
+	"os"
+	"strconv"
+	"strings"
 )
 
-func main() {
+type ticket struct {
+	data []int
+}
 
-	//
-	//data := []int{0,3,6,0}
-	//target := 0
-	//result := 3
-	//first, second := searchForLastTime(data, target)
-	//if first != 1 && second != 4{
-	//	panic("fail")
-	//}
-	//
-	//
-	//data = []int{0,3,6,0,3}
-	//target = 3
-	//result = 3
-	//first, second = searchForLastTime(data, target)
-	//if second - first != result{
-	//	panic("fail")
-	//}
-	//
-	//
-	//data = []int{1,2,3}
-	//target = 1
-	//result = 3
-	//first, second = searchForLastTime(data, target)
-	//if first != result && second != 0{
-	//	panic("fail")
-	//}
-	//
-	//target = 2
-	//result = 2
-	//first, second = searchForLastTime(data, target)
-	//if first != result && second != 0{
-	//	panic("fail")
-	//}
-	//
-	//
-	//target = 3
-	//result = 1
-	//first, second = searchForLastTime(data, target)
-	//if first != result && second != 0{
-	//	panic("fail")
-	//}
-	//
-	//target = 4
-	//result = 0
-	//first, second = searchForLastTime(data, target)
-	//if first != result && second != 0{
-	//	panic("fail")
-	//}
-	//
-	//
-	//if part1([]int64{0,3,6}, 2020) != 436{
-	//	panic("Test Failed")
-	//}
-	//
-	//if part1([]int64{1,3,2}, 2020) != 1{
-	//	panic("Test Failed")
-	//}
-	//if part1([]int64{2,1,3}, 2020) != 10{
-	//	panic("Test Failed")
-	//}
-	//
-	//if part1([]int64{1,2,3}, 2020) != 27{
-	//	panic("Test Failed")
-	//}
-	//if part1([]int64{2,3,1}, 2020) != 78{
-	//	panic("Test Failed")
-	//}
-	//if part1([]int64{3,2,1}, 2020) != 438{
-	//	panic("Test Failed")
-	//}
-	//if part1([]int64{3,1,2}, 2020) != 1836{
-	//	panic("Test Failed")
-	//}
-	//
-	///*
-	//	puzzle input
-	//*/
-	//lastSpoken := part1([]int64{5, 1, 9, 18, 13, 8, 0}, 2020)
-	//if lastSpoken != 376{
-	//	panic("Part 1 failed")
-	//}
-	//log.Println(fmt.Sprintf("Last Spoken Part 1: %d", lastSpoken))
+type ticketRules struct {
+	rules []*rule
+}
 
-	if part2([]int{0, 3, 6}, 30000000) != 175594 {
-		panic("Test Failed")
+func (me *ticketRules) build(rules []*rule, sampleTickets []*ticket) {
+
+	columns := len(sampleTickets[0].data)
+	me.rules = make([]*rule, columns)
+
+	var mungedRules []map[*rule]int
+	mungedRules = make([]map[*rule]int, 0)
+
+	for x := 0; x < columns; x++ {
+
+		sampleData := make([]int, len(sampleTickets))
+		for i := 0; i < len(sampleData); i++ {
+			aSampleTicket := sampleTickets[i]
+			sampleData[i] = aSampleTicket.data[x]
+		}
+
+		columnMap := make(map[*rule]int, 0)
+		mungedRules = append(mungedRules, columnMap)
+
+		/*
+			given some sample data, which rule fits....
+		*/
+		for i := 0; i < len(sampleData); i++ {
+			aSample := sampleData[i]
+
+			for _, aRule := range rules {
+				if aRule.valid(aSample) {
+
+					value, _ := columnMap[aRule]
+					value++
+					columnMap[aRule] = value
+
+				}
+
+			}
+
+		}
+
 	}
 
-	if part2([]int{1, 3, 2}, 30000000) != 2578 {
-		panic("Test Failed")
-	}
-	if part2([]int{2, 1, 3}, 30000000) != 3544142 {
-		panic("Test Failed")
-	}
+	sampleSize := len(sampleTickets)
+	reduceFurther := true
 
-	if part2([]int{1, 2, 3}, 30000000) != 261214 {
-		panic("Test Failed")
-	}
-	if part2([]int{2, 3, 1}, 30000000) != 6895259 {
-		panic("Test Failed")
-	}
-	if part2([]int{3, 2, 1}, 30000000) != 18 {
-		panic("Test Failed")
-	}
-	if part2([]int{3, 1, 2}, 30000000) != 362 {
-		panic("Test Failed")
-	}
+	for i := 0; reduceFurther; i++ {
+		me.reduce(sampleSize, mungedRules)
+		reduceFurther = false
+		for _, aRuleMap := range mungedRules {
 
-	lastSpoken := part2([]int{5, 1, 9, 18, 13, 8, 0}, 30000000)
-	//if lastSpoken != 376{
-	//	panic("Part 1 failed")
-	//}
-	log.Println(fmt.Sprintf("Last Spoken Part 2: %d", lastSpoken))
+			if len(aRuleMap) > 1 {
+				reduceFurther = true
+				break
+			}
+
+		}
+	}
+	me.reduce(sampleSize, mungedRules)
 
 }
 
-func part1(data []int64, target int64) int64 {
-
-	lastSpoken := make([]int64, target)
+func (me *ticketRules) reduce(sampleSize int, mungedRules []map[*rule]int) {
 
 	/*
-		push our starting words
+		first pass.... easy ones
 	*/
-	for i := 0; i < len(data); i++ {
-		word := data[i]
-		//lastSpoken = append(lastSpoken, word)
-		lastSpoken[i] = word
-	}
+	for _, aRuleMap := range mungedRules {
 
-	for i := int64(len(data)); i < target; i++ {
-		word := lastSpoken[len(lastSpoken)-1]
-		//log.Println(fmt.Sprintf("Last Spoken: %d",  word))
+		for key, value := range aRuleMap {
+			if value == sampleSize {
+				/*
+					keep this one....
+				*/
+			} else {
+				delete(aRuleMap, key)
+			}
 
-		wordsToSearch := lastSpoken
-		var first, second int64
-		first, second = searchForLastTime(wordsToSearch, word)
-		lastTimeSpoken := int64(0)
-		if second == 0 {
-			lastTimeSpoken = 0
-		} else {
-			lastTimeSpoken = (second) - (first)
 		}
 
-		lastSpoken[i] = lastTimeSpoken
-		//lastSpoken = append(lastSpoken, lastTimeSpoken)
-	}
-	lastWords := lastSpoken[len(lastSpoken)-10:]
-	if len(lastWords) > 0 {
-
-	}
-	lastWord := lastSpoken[len(lastSpoken)-1]
-	return lastWord
-}
-
-func part2(data []int, target int) int {
-
-	spoken := make([]int, target)
-	turn := 1
-
-	for _, input := range data[:len(data)-1] {
-		spoken[input] = turn
-		turn++
 	}
 
-	var prev int
-	speak := data[len(data)-1]
+	//
+	//
+	///*
+	//second pass, get the the ones that are not already sorted out in phase 1
+	// */
+	for key, aRuleMap := range mungedRules {
+		if len(aRuleMap) == 1 {
+			for aRule, _ := range aRuleMap {
+				me.rules[key] = aRule
+			}
+			foundRule := me.rules[key]
 
-	for ; turn <= target; turn++ {
-		prev = speak
-
-		if t := spoken[speak]; t != 0 {
-			speak = turn - t
-		} else {
-			speak = 0
-		}
-
-		spoken[prev] = turn
-	}
-
-	return prev
-}
-
-func searchForLastTime(data []int64, target int64) (first int64, second int64) {
-
-	numbers := make([]int64, 0)
-
-	//for i := int64(0); i < int64(len(data)); i++ {
-	//	word := data[i]
-	//	if word == target {
-	//		numbers = append(numbers, i)
-	//		if len(numbers) ==2{
-	//			break
-	//		}
-	//	}
-	//}
-
-	for i := len(data) - 1; i >= 0; i-- {
-		word := data[i]
-		if word == target {
-			numbers = append(numbers, int64(i))
-			if len(numbers) == 2 {
-				break
+			for _, aRuleMapToSearch := range mungedRules {
+				for aPotentialRuleToDeleteKey, _ := range aRuleMapToSearch {
+					if aPotentialRuleToDeleteKey == foundRule {
+						delete(aRuleMapToSearch, aPotentialRuleToDeleteKey)
+					}
+				}
 			}
 		}
 	}
 
-	if len(numbers) > 1 {
-		end := len(numbers) - 1
-		second = numbers[end-1] + 1
-		first = numbers[end] + 1
-	}
-
-	//if abs(first - second) > 100000{
-	//	log.Println(fmt.Sprintf("First: %d Second: %d", first, second))
-	//}
-
-	return first, second
 }
-func abs(x int64) int64 {
-	if x < 0 {
-		return (x * -1)
+
+func (me *ticket) valid(rules []*rule) bool {
+
+	for x := 0; x < len(me.data); x++ {
+		isValid := false
+		aNumber := me.data[x]
+		for i := 0; !isValid && i < len(rules); i++ {
+			isValid = rules[i].valid(aNumber)
+		}
+
+		if !isValid {
+			return false
+		}
+
 	}
-	return x
+	return true
+}
+
+type rule struct {
+	name        string
+	constraints []*rangeConstraint
+}
+
+func (me *rule) valid(aNumber int) bool {
+	isValid := false
+	for i := 0; !isValid && i < len(me.constraints); i++ {
+		isValid = me.constraints[i].valid(aNumber)
+	}
+	return isValid
+}
+
+type rangeConstraint struct {
+	low  int
+	high int
+}
+
+func (me *rangeConstraint) valid(aNumber int) bool {
+	isValid := (aNumber >= me.low)
+	isValid = (isValid && (aNumber <= me.high))
+	return isValid
+}
+
+func main() {
+
+	expectation := 71
+	if errorRate := part1("day_16_sample_data.txt"); errorRate != expectation {
+		panic(fmt.Sprintf("Expected: %d", expectation))
+	}
+	expectation = 29851
+	if errorRate := part1("day_16_data.txt"); errorRate != expectation {
+		panic(fmt.Sprintf("Expected: %d", expectation))
+	}
+
+	expectation = 3029180675981
+	if errorRate := part2("day_16_data.txt"); errorRate != expectation {
+		panic(fmt.Sprintf("Expected: %d", expectation))
+	}
+
+}
+
+func part1(fileName string) int {
+	var rules []*rule
+	//var myTickets []int
+	var nearByTickets []*ticket
+	rules, _, nearByTickets = Parse(fileName)
+
+	errors := make([]int, 0)
+	for _, aTicket := range nearByTickets {
+
+		for x := 0; x < len(aTicket.data); x++ {
+			isValid := false
+			aNumber := aTicket.data[x]
+			for i := 0; !isValid && i < len(rules); i++ {
+				isValid = rules[i].valid(aNumber)
+			}
+
+			if !isValid {
+				errors = append(errors, aTicket.data[x])
+				break
+			}
+
+		}
+	}
+
+	errorRate := 0
+	for _, aTicket := range errors {
+		errorRate += aTicket
+	}
+	return errorRate
+}
+
+func part2(fileName string) int {
+	var rules []*rule
+	var myTicket *ticket
+	var nearByTickets []*ticket
+	rules, myTicket, nearByTickets = Parse(fileName)
+
+	var ticketsToConsider []*ticket
+
+	for _, aTicket := range nearByTickets {
+		if aTicket.valid(rules) {
+			ticketsToConsider = append(ticketsToConsider, aTicket)
+		}
+	}
+
+	ticketRules := &ticketRules{}
+	ticketRules.build(rules, ticketsToConsider)
+
+	/*
+		gather rules
+	*/
+	errorRate := 1
+	for index, rule := range ticketRules.rules {
+		if strings.Contains(rule.name, "departure") {
+			myValue := myTicket.data[index]
+			errorRate = errorRate * myValue
+		}
+	}
+
+	return errorRate
+}
+
+func Parse(aFilePart string) (rules []*rule, myTicket *ticket, nearByTickets []*ticket) {
+	filename := fmt.Sprintf("data/%s", aFilePart)
+	file, err := os.Open(filename)
+	if err != nil {
+		panic(err)
+	}
+	defer file.Close()
+
+	rules = make([]*rule, 0)
+	myTicket = &ticket{}
+	nearByTickets = make([]*ticket, 0)
+	fileScanner := bufio.NewScanner(file)
+	fileScanner.Split(bufio.ScanLines)
+
+	parsePosition := 1
+	for i := 0; fileScanner.Scan(); i++ {
+		aString := fileScanner.Text()
+		/*
+			class: 1-3 or 5-7
+		*/
+
+		spaceCount := strings.Count(aString, " ")
+		if spaceCount >= 3 {
+			runes := []rune(aString)
+			index := strings.Index(aString, ":")
+			name := string(runes[:index])
+
+			rule := &rule{
+				name:        name,
+				constraints: make([]*rangeConstraint, 0),
+			}
+			rules = append(rules, rule)
+
+			remainingString := string(runes[index+1:])
+			splits := strings.Split(remainingString, " or ")
+
+			for _, aString := range splits {
+				aString = strings.Trim(aString, " ")
+				splits = strings.Split(aString, "-")
+				low, _ := strconv.Atoi(splits[0])
+				high, _ := strconv.Atoi(splits[1])
+				aConstraint := &rangeConstraint{
+					low:  low,
+					high: high,
+				}
+				rule.constraints = append(rule.constraints, aConstraint)
+			}
+
+		} else if aString == "" {
+
+		} else if aString == "your ticket:" {
+			parsePosition++
+		} else if aString == "nearby tickets:" {
+			parsePosition++
+		} else {
+			if parsePosition == 2 {
+
+				splits := strings.Split(aString, ",")
+				for _, aString := range splits {
+					aNumber, _ := strconv.Atoi(aString)
+					myTicket.data = append(myTicket.data, aNumber)
+
+				}
+
+			} else if parsePosition == 3 {
+				aTicket := &ticket{data: make([]int, 0)}
+				nearByTickets = append(nearByTickets, aTicket)
+				splits := strings.Split(aString, ",")
+				for _, aString := range splits {
+					aNumber, _ := strconv.Atoi(aString)
+					aTicket.data = append(aTicket.data, aNumber)
+
+				}
+			}
+		}
+
+	}
+
+	file.Close()
+
+	return rules, myTicket, nearByTickets
 }
