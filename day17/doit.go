@@ -46,6 +46,10 @@ func (self *point3d) relativePoints(depth int) []*point3d {
 
 }
 
+type cubes struct {
+	stateMap map[*point3d]*cubeState
+}
+
 type cubeState struct {
 	active bool
 	point  *point3d
@@ -86,9 +90,14 @@ func part1(aFileName string) (result int) {
 	var initialGraphState []*cubeState
 	initialGraphState = Parse(aFileName)
 
+	cubes := &cubes{
+		stateMap: make(map[*point3d]*cubeState, 0),
+	}
+
 	for _, aCube := range initialGraphState {
-		relativePoints := aCube.point.relativePoints(1)
-		plot(relativePoints, initialGraphState)
+		cubes.stateMap[aCube.point] = aCube
+
+		plot(aCube, cubes)
 	}
 
 	if len(initialGraphState) > 0 {
@@ -98,25 +107,29 @@ func part1(aFileName string) (result int) {
 	return result
 }
 
-func getCubeStateAtPoint(graphStates []*cubeState, point *point3d) *cubeState {
+func getCubeStateAtPoint(cubes *cubes, point *point3d) *cubeState {
 
-	var foundCubeState *cubeState
+	var aCubeState *cubeState
+	var ok bool
+	if aCubeState, ok = cubes.stateMap[point]; !ok {
 
-	for i := 0; foundCubeState == nil && i < len(graphStates); i++ {
-		aCubeState := graphStates[i]
-		if aCubeState.point == point {
-			foundCubeState = aCubeState
+		aCubeState = &cubeState{
+			active: false,
+			point:  point,
 		}
+		cubes.stateMap[point] = aCubeState
 	}
 
-	return foundCubeState
+	return aCubeState
 }
 
-func plot(points []*point3d, graphState []*cubeState) [][][]int {
+func plot(aCube *cubeState, cubes *cubes) [][][]int {
+
+	relativePoints := aCube.point.relativePoints(1)
 
 	depth := 3
 
-	graph := make([][][]int, 0)
+	graph := make([][][]*cubeState, 0)
 
 	var z, x, y int
 	startingZ := 0
@@ -127,36 +140,32 @@ func plot(points []*point3d, graphState []*cubeState) [][][]int {
 	endingY := y + depth
 
 	for z := startingZ; z < endingZ; z++ {
-		graph = append(graph, make([][]int, 0))
-
+		graph = append(graph, make([][]*cubeState, 0))
 		for x := startingX; x < endingX; x++ {
-			graph[z] = append(graph[z], make([]int, 0))
-
+			graph[z] = append(graph[z], make([]*cubeState, 0))
 			for y := startingY; y < endingY; y++ {
-				graph[z][x] = append(graph[z][x], 0)
+				graph[z][x] = append(graph[z][x], nil)
 			}
-
 		}
-
 	}
 
-	for _, aPoint := range points {
-		currentCubeState := getCubeStateAtPoint(graphState, aPoint)
+	for _, aPoint := range relativePoints {
+		currentCubeState := getCubeStateAtPoint(cubes, aPoint)
 		if currentCubeState != nil {
 			z := aPoint.z + 1
 			x := aPoint.x + 1
 			y := aPoint.y + 1
 			if currentCubeState.active {
-				graph[z][x][y] = 1
+				graph[z][x][y] = currentCubeState
 			} else {
-				graph[z][x][y] = 0
+				graph[z][x][y] = currentCubeState
 			}
 
 		}
 
 	}
 
-	return graph
+	return nil
 }
 
 func Parse(aFilePart string) (initialGraphState []*cubeState) {
