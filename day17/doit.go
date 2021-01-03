@@ -7,9 +7,9 @@ import (
 )
 
 type point3d struct {
+	z int
 	x int
 	y int
-	z int
 }
 
 func (self *point3d) relativePoints(depth int) []*point3d {
@@ -81,10 +81,16 @@ func (self *cubeState) cycleWithin(cubes *cubes) {
 
 func (self *cubeState) countActiveNeighbors(cubes *cubes) int {
 	activeCount := 0
-	var virtualCubes [][][]*cubeState
-	virtualCubes = cubes.plot(self)
-	if len(virtualCubes) > 0 {
-
+	//var virtualCubes [][][]*cubeState
+	//virtualCubes = cubes.plot(self)
+	relativePoints := self.point.relativePoints(1)
+	if len(relativePoints) > 0 {
+		for i := 0; i < len(relativePoints); i++ {
+			currentCubeState := cubes.getCubeStateAtPoint(relativePoints[i])
+			if currentCubeState.active {
+				activeCount = +1
+			}
+		}
 	}
 	return activeCount
 }
