@@ -50,29 +50,42 @@ type cubes struct {
 	stateMap map[*point3d]*cubeState
 }
 
+func (self *cubes) cycle() {
+
+	var aCubeState *cubeState
+	for _, aCubeState = range self.stateMap {
+		aCubeState.cycleWithin(self)
+	}
+}
+
 type cubeState struct {
 	active bool
 	point  *point3d
 }
 
-func (self *cubeState) cycle(z []int, x []int, y []int) {
+func (self *cubeState) cycleWithin(cubes *cubes) {
 	if self.active {
-		neighborActiveCount := self.countActiveNeighbors()
+		neighborActiveCount := self.countActiveNeighbors(cubes)
 		if neighborActiveCount == 2 || neighborActiveCount == 3 {
 
 		} else {
 			self.active = false
 		}
 	} else {
-		neighborActiveCount := self.countActiveNeighbors()
+		neighborActiveCount := self.countActiveNeighbors(cubes)
 		if neighborActiveCount == 3 {
 			self.active = true
 		}
 	}
 }
 
-func (self *cubeState) countActiveNeighbors() int {
+func (self *cubeState) countActiveNeighbors(cubes *cubes) int {
 	activeCount := 0
+	var virtualCubes [][][]*cubeState
+	virtualCubes = cubes.plot(self)
+	if len(virtualCubes) > 0 {
+
+	}
 	return activeCount
 }
 
@@ -96,9 +109,9 @@ func part1(aFileName string) (result int) {
 
 	for _, aCube := range initialGraphState {
 		cubes.stateMap[aCube.point] = aCube
-
-		plot(aCube, cubes)
 	}
+
+	cubes.cycle()
 
 	if len(initialGraphState) > 0 {
 
@@ -107,23 +120,23 @@ func part1(aFileName string) (result int) {
 	return result
 }
 
-func getCubeStateAtPoint(cubes *cubes, point *point3d) *cubeState {
+func (self *cubes) getCubeStateAtPoint(point *point3d) *cubeState {
 
 	var aCubeState *cubeState
 	var ok bool
-	if aCubeState, ok = cubes.stateMap[point]; !ok {
+	if aCubeState, ok = self.stateMap[point]; !ok {
 
 		aCubeState = &cubeState{
 			active: false,
 			point:  point,
 		}
-		cubes.stateMap[point] = aCubeState
+		self.stateMap[point] = aCubeState
 	}
 
 	return aCubeState
 }
 
-func plot(aCube *cubeState, cubes *cubes) [][][]int {
+func (self *cubes) plot(aCube *cubeState) [][][]*cubeState {
 
 	relativePoints := aCube.point.relativePoints(1)
 
@@ -150,7 +163,7 @@ func plot(aCube *cubeState, cubes *cubes) [][][]int {
 	}
 
 	for _, aPoint := range relativePoints {
-		currentCubeState := getCubeStateAtPoint(cubes, aPoint)
+		currentCubeState := self.getCubeStateAtPoint(aPoint)
 		if currentCubeState != nil {
 			z := aPoint.z + 1
 			x := aPoint.x + 1
@@ -165,7 +178,7 @@ func plot(aCube *cubeState, cubes *cubes) [][][]int {
 
 	}
 
-	return nil
+	return graph
 }
 
 func Parse(aFilePart string) (initialGraphState []*cubeState) {
